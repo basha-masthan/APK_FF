@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animated-row {
+      animation: fadeIn 0.3s ease-out forwards;
+      opacity: 0;
+    }
+    
+    .table-container {
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .action-btn {
+      transition: all 0.2s ease;
+    }
+    
+    .action-btn:hover {
+      transform: translateY(-2px);
+    }
+    
+    .highlight-row {
+      transition: background-color 0.3s ease;
+    }
+    
+    .highlight-row:hover {
+      background-color: rgba(59, 130, 246, 0.05);
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-6">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 flex items-center">
+        <span class="bg-blue-100 p-2 rounded-lg mr-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </span>
+        Registered Users
+      </h1>
+      <!-- post action  value for button -->
+        <form action="/register.html" method="GET">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-all">
+            <i class="fas fa-user-plus mr-2"></i>
+            Add New User
+            </button>
+        </form>
+    </div>
+    
+    <div class="bg-white table-container">
+      <div class="overflow-x-auto">
+        <table  id="userTable" class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Updated At
+                </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <div class="flex items-center">
+                  Username
+                  <button class="ml-2 text-gray-400 hover:text-gray-600">
+                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Email Address
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+             <tr class="highlight-row animated-row" style="animation-delay: 0.1s;"> 
+                
+             </tr>
+        </tbody>
+        </table>
+      </div>
+      <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200">
+        <div class="flex-1 flex justify-between sm:hidden">
+          <button class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Previous
+          </button>
+          <button class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Next
+          </button>
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm text-gray-700">
+              Showing <span class="font-medium">1</span> to <span class="font-medium">3</span> of <span class="font-medium">24</span> users
+            </p>
+          </div>
+          <div>
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+              <button class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                <span class="sr-only">Previous</span>
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+              </button>
+              <button aria-current="page" class="z-10 bg-blue-50 border-blue-500 text-blue-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                1
+              </button>
+              <button class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                2
+              </button>
+              <button class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hidden md:inline-flex relative items-center px-4 py-2 border text-sm font-medium">
+                3
+              </button>
+              <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                ...
+              </span>
+              <button class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hidden md:inline-flex relative items-center px-4 py-2 border text-sm font-medium">
+                8
+              </button>
+              <button class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                <span class="sr-only">Next</span>
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-8 text-center text-gray-500 text-sm">
+      <p>Showing 3 of 24 users. Last updated: <span id="update-time" class="font-medium">Just now</span></p>
+    </div>
+  </div>
+
+  
+
+  <script>
+  fetch('/users')
+    .then(res => res.json())
+    .then(users => {
+      const tbody = document.querySelector('#userTable tbody');
+
+      // Check for auth error from backend
+      if (users.error) {
+        document.body.innerHTML = `
+          <h2 style="color:red;">❌ Unable to access this directory</h2>
+          <p>You must be logged in as admin to view this page.</p>
+          <a href="/admin/admin.html">Login as Admin</a>
+        `;
+        return;
+      }
+
+      users.forEach(user => {
+        const tr = document.createElement('tr');
+        tr.className = "highlight-row animated-row"; // Add class for styling
+
+        const tdName = document.createElement('td');
+        const tdEmail = document.createElement('td');
+        const tdAction = document.createElement('td');
+
+        const tdUpdated = document.createElement('td');
+
+
+        tdUpdated.textContent = new Date(user.updatedAt).toLocaleString();
+
+        tdUpdated.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-500";
+
+
+        tdName.textContent = user.uname;
+        tdEmail.textContent = user.email;
+
+        // Style the table cells
+        tdName.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-900";
+        tdEmail.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-900";
+        tdAction.className = "px-6 py-4 whitespace-nowrap text-sm font-medium";
+
+        // ✅ Delete Button
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete';
+        delBtn.className = "text-red-600 hover:text-red-900 action-btn p-2 bg-red-200 ml-2"; // Add styling
+        delBtn.onclick = () => {
+          if (confirm(`Delete ${user.uname}?`)) {
+            fetch(`/users/${user._id}`, {
+              method: 'DELETE'
+            }).then(res => {
+              if (res.ok) tr.remove();
+              else alert('Error deleting user');
+            });
+          }
+        };
+
+        // ✅ Edit Button
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.className = "text-yellow-600 hover:text-yellow-900 action-btn bg-yellow-200 p-2"; // Add styling background color
+        editBtn.onclick = () => {
+          // Turn text into input fields
+          const nameInput = document.createElement('input');
+          nameInput.value = tdName.textContent;
+          nameInput.className = "border border-gray-300 rounded-md px-2 py-1"; // Style input
+
+          const emailInput = document.createElement('input');
+          emailInput.value = tdEmail.textContent;
+          emailInput.className = "border border-gray-300 rounded-md px-2 py-1"; // Style input
+
+          const saveBtn = document.createElement('button');
+          saveBtn.textContent = 'Save';
+          saveBtn.className = "bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md"; // Style save button
+          saveBtn.onclick = () => {
+            fetch(`/api/users/${user._id}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                uname: nameInput.value,
+                email: emailInput.value,
+                password: user.password // keep existing password
+              })
+            }).then(res => {
+              if (res.ok) {
+                tdName.textContent = nameInput.value;
+                tdEmail.textContent = emailInput.value;
+                
+                tdAction.innerHTML = '';
+                tdAction.appendChild(editBtn);
+                tdAction.appendChild(delBtn);
+              } else {
+                alert('Error updating user');
+              }
+            });
+          };
+
+          tdName.innerHTML = '';
+          tdEmail.innerHTML = '';
+          tdAction.innerHTML = '';
+
+          tdName.appendChild(nameInput);
+          tdEmail.appendChild(emailInput);
+          tdAction.appendChild(saveBtn);
+        };
+
+        // Append buttons
+        tdAction.appendChild(editBtn);
+        tdAction.appendChild(delBtn);
+
+        tr.appendChild(tdUpdated); // ← new
+        tr.appendChild(tdName);
+        tr.appendChild(tdEmail);
+        tr.appendChild(tdAction);
+
+        tbody.appendChild(tr);
+      });
+    })
+    .catch(err => console.error('Error fetching users:', err));
+</script>
+
+
+</body>
+</html>

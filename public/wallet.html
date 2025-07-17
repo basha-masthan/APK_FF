@@ -1,0 +1,240 @@
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  </head>
+  <body class="p-2 bg-gray-100 text-gray-800">
+    <div class="max-w-4xl mx-auto mt-5">
+      <div class="flex  justify-between mb-6">
+        <a href="javascript:history.back()" class=" text-blue-600 hover:underline">
+          <!-- fav iconbutton back arroe -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </a>
+        <h1 class="text-3xl text-center font-bold">💰 Wallet</h1>
+      </div>
+
+      <!-- Balance Card -->
+      <div class="bg-white p-6 rounded-xl shadow-md flex items-center justify-between mb-6">
+        <div>
+          <!-- <p class="text-gray-500">Current Balance</p>
+          <h2 id="balance" class="text-2xl font-semibold">₹0</h2> -->
+          <!-- i want deposit and winning amount buttons with info-->
+          <p class="text-gray-500">Wallet Balance</p>
+          <h2 id="balance" class="text-2xl font-semibold">₹0</h2>
+          <p class="text-gray-500">Winning Balance</p>
+          <h2 id="winb" class="text-2xl font-semibold">₹0</h2>
+          
+
+        </div>
+        <div class="flex gap-2 flex-col">
+          <button onclick="openRazorpay()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">Deposit Amount</button>
+          <button onclick="requestWithdraw()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">Withdraw Balance</button>
+        </div>
+      </div>
+
+      <!-- Transaction History -->
+      <div class="bg-white p-6 rounded-xl shadow-md">
+        <h3 class="text-xl font-semibold mb-4">📄 Transaction History</h3>
+        <table class="w-full text-left border">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="p-2 border">Date</th>
+              <th class="p-2 border">Type</th>
+              <th class="p-2 border">Amount</th>
+              <th class="p-2 border">Status</th>
+            </tr>
+          </thead>
+          <tbody id="txnTable">
+            <tr><td colspan="4" class="p-2 text-center">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <script>
+  //       fetch('/tournaments')
+  //   .then(res => res.json())
+  //   .then(data => {
+  //     if (data.error) {
+  //       // 🚫 Not logged in
+  //       window.location.href = '/login.html';
+  //       return;
+  //     }};
+      // ✅ Show logged in username from session (server should inject this)
+      fetch('/session-info')
+          .then(res => res.json())
+          .then(data => {
+              if (data.error) {
+              // 🚫 Not logged in
+              window.location.href = '/login.html';
+              return;
+              }
+              document.getElementById('usernameDisplay').textContent = data.username;
+          })
+          .catch(err => {
+              console.error('Failed to fetch session info:', err);
+          });
+
+
+    </script>
+
+
+    <script>
+      let transactionId = null;
+
+      async function fetchWalletData() {
+  try {
+    // Fetch normal balance
+    const balanceRes = await fetch('/wallet/balance');
+    const balanceData = await balanceRes.json();
+    document.getElementById('balance').textContent = `₹${balanceData.balance || 0}`;
+
+    // ✅ Fetch winning money
+    const winRes = await fetch('/wallet/balance/total');
+    const winData = await winRes.json();
+    document.getElementById('winb').textContent = `₹${winData.winningMoney || 0}`;
+
+    // Fetch transaction history
+    const txnRes = await fetch('/wallet/transactions');
+    const txns = await txnRes.json();
+    const tbody = document.getElementById('txnTable');
+    tbody.innerHTML = '';
+    txns.forEach(txn => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="p-2 border">${new Date(txn.date).toLocaleString()}</td>
+        <td class="p-2 border">${txn.type}</td>
+        <td class="p-2 border">₹${txn.amount}</td>
+        <td class="p-2 border">${txn.status}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  } catch (err) {
+    alert('⚠️ Failed to load wallet data. Please try again.');
+    console.error(err);
+  }
+}
+
+
+      async function openRazorpay() {
+        const amount = prompt("Enter amount to add to wallet:");
+        if (!amount || isNaN(amount) || amount <= 0) return alert("Enter valid amount");
+
+        try {
+          const txnRes = await fetch('/wallet/deposit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount })
+          });
+          const txnData = await txnRes.json();
+          transactionId = txnData.transactionId;
+
+          const orderRes = await fetch('/wallet/razorpay/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount })
+          });
+          const orderData = await orderRes.json();
+
+          const options = {
+            key: "rzp_live_lQ9w51ralxSifE", // replace in production
+            amount: orderData.amount,
+            currency: "INR",
+            name: "FF Tournament Wallet",
+            description: "Add Funds",
+            order_id: orderData.id,
+            handler: async function (response) {
+              const verifyRes = await fetch('/wallet/deposit/success', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  transactionId,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_signature: response.razorpay_signature
+                })
+              });
+              const data = await verifyRes.json();
+              if (data.success) {
+                alert('✅ Payment Successful');
+                fetchWalletData();
+              } else {
+                alert('❌ Payment Verification Failed');
+              }
+            },
+            theme: { color: "#0f766e" }
+          };
+
+          const rzp = new Razorpay(options);
+          rzp.on('payment.failed', function () {
+            alert('❌ Oops! Something went wrong. Payment Failed');
+          });
+          rzp.open();
+        } catch (err) {
+          alert('Something went wrong during Razorpay setup');
+          console.error(err);
+        }
+      }
+
+
+      fetchWalletData();
+    </script>
+
+    <script>
+async function requestWithdraw() {
+  try {
+    const upiId = prompt("Enter your UPI ID (e.g., user@bank):");
+    if (!upiId || !upiId.includes('@')) {
+      alert("❌ Enter a valid UPI ID");
+      return;
+    }
+
+    const amount = prompt("Enter amount to withdraw:");
+    if (!amount || isNaN(amount) || amount <= 0) {
+      alert("❌ Enter a valid numeric amount");
+      return;
+    }
+
+    // Get user balance to verify winningMoney
+    const resBalance = await fetch('/wallet/balance/total');
+    const balanceData = await resBalance.json();
+
+    if (!balanceData || typeof balanceData.winningMoney !== 'number') {
+      alert("❌ Unable to fetch your winning balance");
+      return;
+    }
+
+    if (parseFloat(amount) > balanceData.winningMoney) {
+      alert(`❌ Withdrawal amount exceeds your winning balance of ₹${balanceData.winningMoney}`);
+      return;
+    }
+
+    // Send request to backend
+    const res = await fetch('/wallet/withdraw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ upiId, amount })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert("✅ Withdrawal request submitted successfully");
+      fetchWalletData(); // refresh wallet balance/transactions
+    } else {
+      alert(`❌ ${data.error || "Failed to submit withdrawal request"}`);
+    }
+
+  } catch (err) {
+    console.error("Withdraw Error:", err);
+    alert("❌ Something went wrong. Try again later.");
+  }
+}
+</script>
+
+  </body>
+  </html>

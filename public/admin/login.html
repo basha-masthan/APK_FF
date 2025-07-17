@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>🔐 Admin Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      margin: 0; padding: 0; box-sizing: border-box;
+      font-family: 'Courier New', monospace;
+    }
+
+    body {
+      height: 100vh;
+      background: #0f0f0f;
+      color: #fff;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(#444 1px, transparent 1px);
+      background-size: 20px 20px;
+      animation: moveDots 20s linear infinite;
+      z-index: 0;
+      opacity: 0.15;
+    }
+
+    body::after {
+      content: "Game adudham ra";
+      font-size: 8rem;
+      color: rgba(255, 255, 255, 0.03);
+      position: absolute;
+      transform: rotate(-30deg);
+      white-space: nowrap;
+      top: 30%;
+      left: -20%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    @keyframes moveDots {
+      0% { background-position: 0 0; }
+      100% { background-position: 100px 100px; }
+    }
+
+    .animated-background {
+      position: fixed;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: url('https://tradebrains-wp.s3.ap-south-1.amazonaws.com/brand/wp-content/uploads/2025/06/Neo-Pepes-NEOP-Presale.jpg') no-repeat center center fixed;
+      background-size: cover;
+      opacity: 0.5;
+      z-index: -1;
+      animation: moveBackground 30s linear infinite;
+    }
+
+    @keyframes moveBackground {
+      0% { background-position: 0 0; }
+      100% { background-position: 100% 100%; }
+    }
+
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 90vw;
+      max-width: 400px;
+      height: 100vh;
+      margin: auto;
+    }
+
+    .card {
+      background: rgba(20, 20, 20, 0.95);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px #0ff2;
+      width: 100%;
+      max-width: 400px;
+      z-index: 2;
+    }
+
+    .card h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+    }
+
+    .card input {
+      padding: 10px;
+      margin-bottom: 15px;
+      background: #111;
+      border: 1px solid #0ff;
+      color: #0ff;
+      border-radius: 5px;
+      width: 100%;
+      font-size: 1rem;
+    }
+
+    .card button {
+      padding: 10px;
+      background: #0ff;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      font-size: 1.1rem;
+    }
+
+    .card p#error {
+      color: red;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    @media (max-width: 500px) {
+      body::after {
+        font-size: 5rem;
+        top: 35%;
+        left: -30%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="animated-background"></div>
+
+  <div class="container">
+    <div class="card">
+      <h2>🛡️ Admin Login</h2>
+      <form method="POST" action="/admin/login" id="admin-login-form">
+        <input type="text" value="admin" name="email" placeholder="Admin Email" required />
+        <input type="password" value="admin" name="password" placeholder="Password" required />
+        <button type="submit">Login</button>
+        <p id="error"></p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('admin-login-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const form = e.target;
+  const email = form.email.value;
+  const password = form.password.value;
+
+  try {
+    const res = await fetch("/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      window.location.href = data.redirect || "/admin/dashboard.html";
+    } else {
+      document.getElementById("error").textContent = data.error || "Invalid credentials";
+    }
+  } catch (err) {
+    document.getElementById("error").textContent = "Network error or server not responding.";
+  }
+});
+
+  </script>
+</body>
+</html>

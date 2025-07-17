@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Earn by Watching</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white min-h-screen flex flex-col items-center justify-center px-4">
+
+  <!-- Header -->
+  <div class="w-full max-w-md text-center mb-6">
+    <button onclick="history.back()" class="absolute left-4 top-4 text-gray-600">
+      ←
+    </button>
+    <h1 class="text-xl font-semibold text-teal-600">WATCH MORE TO EARN MORE</h1>
+  </div>
+
+  <!-- Task Counter -->
+  <div class="w-full max-w-md bg-gray-100 rounded-xl shadow p-6 text-center mb-6">
+    <p class="text-sm text-gray-500 mb-1">COMPLETE TASK</p>
+    <div class="text-2xl font-bold text-white bg-teal-500 rounded-lg px-4 py-2 w-24 mx-auto">
+      0/2
+    </div>
+  </div>
+
+  <!-- How It Works -->
+  <div class="w-full max-w-md text-center mb-6">
+    <h2 class="text-md text-red-500 font-semibold mb-4">How It Works</h2>
+    <div class="flex justify-around">
+      <div class="flex flex-col items-center space-y-2">
+        <img src="https://img.icons8.com/ios-filled/50/4a90e2/youtube-play.png"/>
+        <p class="text-xs text-gray-700">Watch Video</p>
+      </div>
+      <div class="flex flex-col items-center space-y-2">
+        <img src="https://img.icons8.com/ios-filled/50/4a90e2/gift.png"/>
+        <p class="text-xs text-gray-700">Get Reward</p>
+      </div>
+      <div class="flex flex-col items-center space-y-2">
+        <img src="https://img.icons8.com/ios-filled/50/4a90e2/controller.png"/>
+        <p class="text-xs text-gray-700">Join Match</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA Button -->
+  <div class="w-full max-w-md text-center">
+    <button onclick="startAd()" class="w-full bg-teal-500 text-white text-lg py-3 rounded-lg shadow hover:bg-teal-600 transition">
+      WATCH NOW
+    </button>
+  </div>
+
+  <script>
+    function startAd() {
+      alert("📺 Starting Ad... [Hook your ad logic here]");
+    }
+  </script>
+</body>
+</html>

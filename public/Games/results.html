@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>📊 My Tournament Results</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-white p-4 min-h-screen">
+
+  <h1 class="text-3xl font-bold mb-6 text-center text-blue-400">📋 My Match Results</h1>
+
+  <div id="resultsContainer" class="space-y-10"></div>
+
+  <script>
+    fetch('/results/mine')
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById('resultsContainer');
+
+        if (!data.success || !data.data) {
+          container.innerHTML = '<p class="text-red-500 text-center">❌ Failed to load results.</p>';
+          return;
+        }
+
+        Object.entries(data.data).forEach(([tournamentId, group]) => {
+          const section = document.createElement('div');
+          section.className = 'bg-gray-900 p-4 rounded-lg shadow-md border border-gray-800';
+
+          const myStats = group.players.find(p => p.isCurrentUser); // Assuming backend marks current user
+          const allPlayers = group.players;
+
+          section.innerHTML = `
+            <h2 class="text-xl font-semibold text-yellow-400 mb-2">🏆 Tournament ID: ${group.tournament.tournamentId}</h2>
+            <p class="text-sm text-gray-400 mb-4">📅 ${new Date(group.tournament.date).toLocaleDateString()} | 🎯 Per Kill: ₹${group.tournament.perKillReward}</p>
+
+            ${
+              myStats
+              ? `
+              <div class="mb-4 bg-gray-800 p-3 rounded-md border border-green-600">
+                <h3 class="text-green-400 font-semibold mb-2">🎮 Your Performance</h3>
+                <p>🧍 Username: ${myStats.username}</p>
+                <p>🎯 Kills: ${myStats.kills || 0}</p>
+                <p>💰 Money Earned: ₹${myStats.moneyEarned || 0}</p>
+              </div>`
+              : ''
+            }
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm border border-gray-700">
+                <thead class="bg-gray-700">
+                  <tr>
+                    <th class="px-3 py-2 text-left">#</th>
+                    <th class="px-3 py-2 text-left">Username</th>
+                    <th class="px-3 py-2 text-left">Free Fire ID</th>
+                    <th class="px-3 py-2 text-left">Kills</th>
+                    <th class="px-3 py-2 text-left">Money Earned</th>
+                    <th class="px-3 py-2 text-left">Joined At</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-gray-950 divide-y divide-gray-800">
+                  ${allPlayers.map((player, i) => `
+                    <tr class="${player.isCurrentUser ? 'bg-gray-800 font-semibold text-green-300' : ''}">
+                      <td class="px-3 py-2">${i + 1}</td>
+                      <td class="px-3 py-2">${player.username}</td>
+                      <td class="px-3 py-2">${player.freefireId}</td>
+                      <td class="px-3 py-2">${player.kills || 0}</td>
+                      <td class="px-3 py-2">₹${player.moneyEarned || 0}</td>
+                      <td class="px-3 py-2">${new Date(player.joinedAt).toLocaleString()}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+
+          container.appendChild(section);
+        });
+      })
+      .catch(err => {
+        document.getElementById('resultsContainer').innerHTML = '<p class="text-red-500 text-center">🚨 Something went wrong!</p>';
+        console.error("Error loading results:", err);
+      });
+  </script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Create Tournament</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    function redirectAfterSubmit(event) {
+      event.preventDefault();
+      const form = event.target;
+      fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+      }).then(() => {
+        window.location.href = '/admin/dashboard.html';
+      }).catch(err => {
+        alert('Failed to create tournament');
+        console.error(err);
+      });
+    }
+  </script>
+</head>
+<body class="bg-gray-100 py-10">
+  <div class="max-w-3xl mx-auto bg-white shadow-xl p-8 rounded-xl">
+    <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">🎮 Create Tournament</h1>
+    <form action="/tournaments/create" method="POST" class="space-y-6" >
+      
+      <!-- Game Info -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Game Name</label>
+        <input type="text" name="gameName" required class="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g. Free Fire" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Game Logo URL</label>
+        <input type="text" name="gameLogo" class="mt-1 block w-full rounded-md border border-gray-300 p-2" placeholder="https://example.com/logo.png" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Game Mode</label>
+        <select name="gameMode" required class="mt-1 block w-full rounded-md border border-gray-300 p-2">
+          <option value="">Select Mode</option>
+          <option value="Solo">Solo</option>
+          <option value="Duo">Duo</option>
+          <option value="Squad">Squad</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Map Name</label>
+        <input type="text" name="mapName" required class="mt-1 block w-full rounded-md border border-gray-300 p-2" placeholder="e.g. Bermuda" />
+      </div>
+
+      <!-- Tournament Details -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Total Slots</label>
+          <input type="number" name="totalSlots" required class="mt-1 block w-full rounded-md border border-gray-300 p-2" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Available Slots</label>
+          <input type="number" name="availableSlots" required class="mt-1 block w-full rounded-md border border-gray-300 p-2" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Entry Fee (₹)</label>
+          <input type="number" name="entryFee" required class="mt-1 block w-full rounded-md border border-gray-300 p-2" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Per Kill Reward (₹)</label>
+          <input type="number" name="perKillReward" required class="mt-1 block w-full rounded-md border border-gray-300 p-2" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Prize Money (₹)</label>
+          <input type="number" name="prizeMoney" required class="mt-1 block w-full rounded-md border border-gray-300 p-2" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Start Time</label>
+          <input type="datetime-local" name="startTime" required class="mt-1 block w-full rounded-md border border-gray-300 p-2" />
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="text-center">
+        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
+          Create Tournament
+        </button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

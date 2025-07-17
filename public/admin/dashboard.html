@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <style>
+    .active-tab {
+      background-color: #3b82f6;
+      color: white;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen">
+  <div class="flex flex-col md:flex-row min-h-screen">
+    
+    <!-- Sidebar -->
+    <aside class="w-full md:w-64 bg-white border-r border-gray-200 shadow-sm">
+      <div class="p-4 text-xl font-bold border-b border-gray-100">Dashboard</div>
+      <nav class="flex flex-col p-4 space-y-2">
+        <button onclick="showTab('home')" id="tab-home" class="tab-btn flex items-center px-4 py-2 rounded hover:bg-blue-100 transition">
+          <i class="fas fa-home mr-2"></i> Home
+        </button>
+
+        <button onclick="showTab('users')" id="tab-users" class="tab-btn flex items-center px-4 py-2 rounded hover:bg-blue-100 transition">
+          <i class="fas fa-users mr-2"></i> Users
+        </button>
+        <button onclick="showTab('tournaments')" id="tab-tournaments" class="tab-btn flex items-center px-4 py-2 rounded hover:bg-blue-100 transition">
+          <i class="fas fa-trophy mr-2"></i> Tournaments
+        </button>
+        <button onclick="showTab('matches')" id="tab-matches" class="tab-btn flex items-center px-4 py-2 rounded hover:bg-blue-100 transition">
+          <i class="fas fa-gamepad mr-2"></i> Match Registrations
+        </button>
+        <button onclick="showTab('money')" id="tab-money" class="tab-btn flex items-center px-4 py-2 rounded hover:bg-blue-100 transition">
+          <i class="fas fa-wallet mr-2"></i> Withdraw Requests
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6">
+
+      <!-- Stats Section -->
+<section id="section-home" class="hidden">
+  <h2 class="text-2xl font-bold mb-4">📊 Dashboard Stats</h2>
+
+  <!-- Date Range Filter -->
+  <div class="flex flex-col md:flex-row md:items-center gap-4 mb-6">
+    <div>
+      <label class="block text-sm font-medium text-gray-700">From Date</label>
+      <input type="date" id="fromDate" class="border p-2 rounded w-full" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700">To Date</label>
+      <input type="date" id="toDate" class="border p-2 rounded w-full" />
+    </div>
+    <button onclick="loadStats()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mt-4 md:mt-6">Filter</button>
+  </div>
+
+  <!-- Stats Cards -->
+  <div id="statsContainer" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white p-6 rounded-lg shadow text-center">
+      <h3 class="text-xl font-semibold mb-2">👥 Users</h3>
+      <p id="userCount" class="text-3xl font-bold text-blue-600">0</p>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow text-center">
+      <h3 class="text-xl font-semibold mb-2">🏆 Tournaments</h3>
+      <p id="tournamentCount" class="text-3xl font-bold text-green-600">0</p>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow text-center">
+      <h3 class="text-xl font-semibold mb-2">🎮 Matches</h3>
+      <p id="matchCount" class="text-3xl font-bold text-purple-600">0</p>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow text-center">
+      <h3 class="text-xl font-semibold mb-2">💰 Money Earned</h3>
+      <p id="moneyEarned" class="text-3xl font-bold text-red-600">₹0</p>
+    </div>
+  </div>
+</section>
+
+
+
+      
+      <!-- Users -->
+      
+  <section id="section-users" class="hidden">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 flex items-center">
+        <span class="bg-blue-100 p-2 rounded-lg mr-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </span>
+        Registered Users
+      </h1>
+      <form action="/register.html" method="GET">
+        <button type="submit"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-all">
+          <i class="fas fa-user-plus mr-2"></i>
+          Add New User
+        </button>
+      </form>
+    </div>
+
+    <div class="bg-white table-container">
+      <div class="overflow-x-auto">
+        <table id="userTable" class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Updated At</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance (₹)</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Winnings (₹)</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mt-8 text-center text-gray-500 text-sm">
+      <p>Showing all users. Last updated: <span id="update-time" class="font-medium">Just now</span></p>
+    </div>
+  </div>
+
+  <script>
+    fetch('/users')
+      .then(res => res.json())
+      .then(users => {
+        const tbody = document.querySelector('#userTable tbody');
+        if (users.error) {
+          window.location.href = '/admin/login.html';
+          return;
+        }
+
+        users.forEach(user => {
+          const tr = document.createElement('tr');
+
+          const tdUpdated = document.createElement('td');
+          const tdName = document.createElement('td');
+          const tdEmail = document.createElement('td');
+          const tdBalance = document.createElement('td');
+          const tdWinnings = document.createElement('td');
+          const tdAction = document.createElement('td');
+
+          tdUpdated.textContent = new Date(user.updatedAt).toLocaleString();
+          tdName.textContent = user.uname;
+          tdEmail.textContent = user.email;
+          tdBalance.textContent = `₹${user.balance || 0}`;
+          tdWinnings.textContent = `₹${user.winningMoney || 0}`;
+
+          tdUpdated.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-500";
+          tdName.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-900";
+          tdEmail.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-900";
+          tdBalance.className = "px-6 py-4 whitespace-nowrap text-sm text-green-700 font-medium";
+          tdWinnings.className = "px-6 py-4 whitespace-nowrap text-sm text-purple-700 font-medium";
+          tdAction.className = "px-6 py-4 whitespace-nowrap text-sm font-medium";
+
+          // Edit Button
+          const editBtn = document.createElement('button');
+          editBtn.textContent = 'Edit';
+          editBtn.className = "text-yellow-600 hover:text-yellow-900 action-btn bg-yellow-200 p-2";
+
+          // Delete Button
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Delete';
+          delBtn.className = "text-red-600 hover:text-red-900 action-btn p-2 bg-red-200 ml-2";
+          delBtn.onclick = () => {
+            if (confirm(`Delete ${user.uname}?`)) {
+              fetch(`/users/${user._id}`, { method: 'DELETE' }).then(res => {
+                if (res.ok) tr.remove();
+                else alert('Error deleting user');
+              });
+            }
+          };
+
+          editBtn.onclick = () => {
+            const nameInput = document.createElement('input');
+            nameInput.value = user.uname;
+            nameInput.className = "border border-gray-300 rounded-md px-2 py-1";
+
+            const emailInput = document.createElement('input');
+            emailInput.value = user.email;
+            emailInput.className = "border border-gray-300 rounded-md px-2 py-1";
+
+            const balanceInput = document.createElement('input');
+            balanceInput.value = user.balance || 0;
+            balanceInput.type = 'number';
+            balanceInput.className = "border border-gray-300 rounded-md px-2 py-1";
+
+            const winningsInput = document.createElement('input');
+            winningsInput.value = user.winningMoney || 0;
+            winningsInput.type = 'number';
+            winningsInput.className = "border border-gray-300 rounded-md px-2 py-1";
+
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save';
+            saveBtn.className = "bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md";
+            saveBtn.onclick = () => {
+              fetch(`/users/${user._id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  uname: nameInput.value,
+                  email: emailInput.value,
+                  balance: parseFloat(balanceInput.value),
+                  winningMoney: parseFloat(winningsInput.value),
+                  password: user.password
+                })
+              }).then(res => {
+                if (res.ok) {
+                  tdName.textContent = nameInput.value;
+                  tdEmail.textContent = emailInput.value;
+                  tdBalance.textContent = `₹${balanceInput.value}`;
+                  tdWinnings.textContent = `₹${winningsInput.value}`;
+                  tdAction.innerHTML = '';
+                  tdAction.appendChild(editBtn);
+                  tdAction.appendChild(delBtn);
+                } else {
+                  alert('Error updating user');
+                }
+              });
+            };
+
+            tdName.innerHTML = '';
+            tdEmail.innerHTML = '';
+            tdBalance.innerHTML = '';
+            tdWinnings.innerHTML = '';
+            tdAction.innerHTML = '';
+
+            tdName.appendChild(nameInput);
+            tdEmail.appendChild(emailInput);
+            tdBalance.appendChild(balanceInput);
+            tdWinnings.appendChild(winningsInput);
+            tdAction.appendChild(saveBtn);
+          };
+
+          tdAction.appendChild(editBtn);
+          tdAction.appendChild(delBtn);
+
+          tr.appendChild(tdUpdated);
+          tr.appendChild(tdName);
+          tr.appendChild(tdEmail);
+          tr.appendChild(tdBalance);
+          tr.appendChild(tdWinnings);
+          tr.appendChild(tdAction);
+
+          tbody.appendChild(tr);
+        });
+      })
+      .catch(err => console.error('Error fetching users:', err));
+  </script>
+</section>
+
+
+
+      <!-- Tournaments -->
+
+      <section id="section-tournaments" class="hidden">
+         <div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold text-gray-800 flex items-center">
+        <span class="bg-green-100 p-2 rounded-lg mr-3">
+          <i class="fas fa-trophy text-green-600 text-xl"></i>
+        </span>
+        Manage Tournaments
+      </h1>
+      <form action="/admin/admin-tournament.html" >
+        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition">
+          <i class="fas fa-plus mr-2"></i> Create Tournament
+        </button>
+      </form>
+    </div>
+
+    <div class="bg-white rounded-lg shadow overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="  text-sm">
+          <tr>
+            <th class="px-4 py-3 text-left">Tournament ID</th>
+            <th class="px-4 py-3 text-left">Logo</th>
+            <th class="px-4 py-3 text-left">Slots</th>
+            <th class="px-4 py-3 text-left">Entry Fee</th>
+            <th class="px-4 py-3 text-left">Prize ₹</th>
+            <th class="px-4 py-3 text-left">Date</th>
+            <th class="px-4 py-3 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tournamentTable" class="divide-y divide-gray-100 text-sm text-gray-700 bg-white">
+          <!-- JavaScript will populate -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+ <script>
+    fetch('/tournaments')
+      .then(res => res.json())
+      .then(tournaments => {
+        const tbody = document.getElementById('tournamentTable');
+        if (tournaments.error) {
+          tbody.innerHTML = `<tr><td colspan="7" class="text-red-500 px-4 py-2">${tournaments.error}</td></tr>`;
+          return;
+        }
+
+        tournaments.forEach(tour => {
+          const tr = document.createElement('tr');
+          tr.className = 'highlight-row animated-row';
+
+          tr.innerHTML = `
+            <td class="px-4 py-2">${tour.tournamentId}</td>
+            <td class="px-4 py-2">${tour.logo || '-'}</td>
+            <td class="px-4 py-2">${tour.availableSlots}/${tour.totalSlots}</td>
+            <td class="px-4 py-2">₹${tour.entryFee}</td>
+            <td class="px-4 py-2">₹${tour.prizeMoney}</td>
+            <td class="px-4 py-2">${new Date(tour.date).toLocaleDateString()}</td>
+            <td class="px-4 py-2 space-x-2">
+              <button class="bg-yellow-200 hover:bg-yellow-300 text-yellow-800 px-3 py-1 rounded" onclick="editTournament('${tour._id}')">
+                <i class="fas fa-edit"></i> Edit
+              </button>
+              <button class="bg-red-200 hover:bg-red-300 text-red-800 px-3 py-1 rounded" onclick="deleteTournament('${tour._id}', '${tour.tournamentId}')">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+
+    function deleteTournament(id, name) {
+      if (!confirm(`Are you sure you want to delete tournament ${name}?`)) return;
+
+     fetch(`/tournaments/${id}`, {
+  method: 'DELETE'
+})
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert("Tournament deleted successfully");
+      location.reload();
+    } else {
+      alert("❌ " + data.error);
+    }
+  });
+    }
+
+    function editTournament(id) {
+    window.location.href = `/admin/admin-tournament.html?id=${id}`;
+  }
+
+  </script>
+
+
+</section>
+
+
+<!-- Match Registrations Section -->
+
+<section id="section-matches" class="block">
+  <h1 class="text-2xl font-bold text-center mb-4">📊 Match Registrations Dashboard</h1>
+
+  <!-- 🔍 Filter Section -->
+  <div class="flex justify-end mb-4">
+    <label class="mr-2 text-white text-sm">Sort by:</label>
+    <select id="sortSelect" onchange="fetchRegistrations()" class="bg-gray-800 border border-gray-600 text-white rounded px-2 py-1">
+      <option value="desc">Latest First</option>
+      <option value="asc">Oldest First</option>
+    </select>
+  </div>
+
+  <div id="dataContainer" class="space-y-6"></div>
+
+  <script>
+    async function fetchRegistrations() {
+      const sortOrder = document.getElementById('sortSelect').value;
+
+      try {
+        const res = await fetch('/admin/match-registrations');
+        const json = await res.json();
+
+        if (!json.success) {
+          document.getElementById('dataContainer').innerHTML = '<p class="text-red-400">Error fetching data</p>';
+          return;
+        }
+
+        const data = json.data;
+        const container = document.getElementById('dataContainer');
+        container.innerHTML = '';
+
+        // 🧠 Sort tournaments by date
+        const sortedTournaments = Object.entries(data).sort((a, b) => {
+          const dateA = new Date(a[1].tournament.date);
+          const dateB = new Date(b[1].tournament.date);
+          return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+        });
+
+        // 🧱 Render each tournament block
+        sortedTournaments.forEach(([tournamentId, group]) => {
+          const reward = group.tournament.perKillReward || 0;
+
+          const section = document.createElement('div');
+          section.className = 'bg-gray-800 p-4 rounded-lg shadow';
+
+          section.innerHTML = `
+            <div class="flex items-center justify-between mb-2">
+              <h2 class="text-lg font-bold text-blue-400">Tournament ID: ${group.tournament.tournamentId}</h2>
+
+              <label class="text-sm text-green-300 flex items-center">
+                <input type="checkbox" onchange="markTournamentComplete('${tournamentId}')" class="mr-2">
+                Mark as Completed
+              </label>
+            </div>
+
+            <p class="text-sm text-white mb-2">
+              Total Slots: ${group.tournament.totalSlots} |
+              Available: ${group.tournament.availableSlots} |
+              Per Kill Reward: ₹${reward} |
+              Date: ${new Date(group.tournament.date).toLocaleDateString()}
+            </p>
+
+            <div class="overflow-x-auto">
+              <table class="table-auto w-full text-white text-left border border-gray-700">
+                <thead>
+                  <tr class="bg-gray-700 text-sm">
+                    <th class="p-2">Username</th>
+                    <th class="p-2">FreeFire ID</th>
+                    <th class="p-2">Kills</th>
+                    <th class="p-2">Money Earned</th>
+                    <th class="p-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="text-sm">
+                  ${group.players.map(player => `
+                    <tr class="border-t border-gray-700">
+                      <td class="p-2">${player.username}</td>
+                      <td class="p-2">${player.freefireId}</td>
+                      <td class="p-2">
+                        <input
+                          id="kills-${tournamentId}-${player.username}"
+                          type="number"
+                          min="0"
+                          value="${player.kills || 0}"
+                          class="bg-gray-900 border border-gray-600 text-white rounded px-2 py-1 w-20"
+                        />
+                      </td>
+                      <td class="p-2">
+                        <input
+                          id="money-${tournamentId}-${player.username}"
+                          type="number"
+                          min="0"
+                          value="${player.moneyEarned || 0}"
+                          class="bg-gray-900 border border-gray-600 text-white rounded px-2 py-1 w-24"
+                        />
+                      </td>
+                      <td class="p-2">
+                        <button onclick="updateMatch('${player.username}', '${tournamentId}')" class="bg-green-600 px-3 py-1 rounded text-white hover:bg-green-700">Update</button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+
+          container.appendChild(section);
+        });
+      } catch (err) {
+        console.error(err);
+        document.getElementById('dataContainer').innerHTML = '<p class="text-red-400">Server error</p>';
+      }
+    }
+
+    async function updateMatch(username, tournamentId) {
+      const killsInput = document.getElementById(`kills-${tournamentId}-${username}`);
+      const moneyInput = document.getElementById(`money-${tournamentId}-${username}`);
+
+      const kills = parseInt(killsInput.value);
+      const money = parseInt(moneyInput.value);
+
+      if (isNaN(kills) || kills < 0 || isNaN(money) || money < 0) {
+        return alert('❌ Please enter valid numeric values for kills and money.');
+      }
+
+      try {
+        const res = await fetch(`/admin/match-registrations/${tournamentId}/${username}/update`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kills, moneyEarned: money })
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          alert(`✅ Updated ${username} in ${tournamentId} successfully.`);
+        } else {
+          alert('❌ Failed to update match registration.');
+          console.error(json.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('❌ Server error while updating match data.');
+      }
+    }
+
+    // 🧩 Mark Tournament as Completed (just placeholder for now)
+    function markTournamentComplete(tournamentId) {
+      alert(`✔️ Tournament ${tournamentId} marked as completed (future action can be added here)`);
+      // TODO: You can POST to /admin/tournament/${id}/complete
+    }
+
+    fetchRegistrations();
+  </script>
+</section>
+
+
+      <!-- Withdraw requests -->
+
+      <section id="section-money" class="hidden">
+        <section class="p-4" id="withdraw-section">
+  <h2 class="text-xl font-bold mb-3">💸 Withdraw Requests</h2>
+  <div id="withdrawTable" class="overflow-x-auto">
+    <table class="min-w-full border text-sm">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="p-2 border">Username</th>
+          <th class="p-2 border">Amount</th>
+          <th class="p-2 border">UPI ID</th>
+          <th class="p-2 border">Requested At</th>
+          <th class="p-2 border">Action</th>
+        </tr>
+      </thead>
+      <tbody id="withdrawBody"></tbody>
+    </table>
+  </div>
+</section>
+
+      </section>
+
+      <<script>
+async function fetchWithdrawRequests() {
+  const res = await fetch('/admin/withdraw/');
+  const json = await res.json();
+
+  if (!json.success) return alert("❌ Error loading withdraw requests");
+
+  const tbody = document.getElementById("withdrawBody");
+  tbody.innerHTML = "";
+
+  json.data.forEach(req => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="p-2 border">${req.username}</td>
+      <td class="p-2 border">₹${req.amount}</td>
+      <td class="p-2 border">${req.upiId}</td>
+      <td class="p-2 border">${new Date(req.createdAt).toLocaleString()}</td>
+      <td class="p-2 border space-x-2">
+        <button onclick="markWithdraw('${req._id}', 'Completed')" class="bg-green-600 text-white px-2 py-1 rounded">✅ Complete</button>
+        <button onclick="markWithdraw('${req._id}', 'Cancelled')" class="bg-red-600 text-white px-2 py-1 rounded">❌ Cancel</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+async function markWithdraw(id, status) {
+  if (!confirm(`Are you sure you want to mark this as ${status}?`)) return;
+
+  try {
+    const res = await fetch(`/admin/withdraw/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      alert(`✅ Request marked as ${status}`);
+      fetchWithdrawRequests(); // Refresh the list
+    } else {
+      alert(`❌ Failed to update: ${data.error || 'Unknown error'}`);
+    }
+  } catch (err) {
+    console.error("❌ Fetch error:", err);
+    alert("❌ Network error or server is down");
+  }
+}
+
+fetchWithdrawRequests();
+</script>
+
+
+      <!-- payment requests -->
+       
+
+    </main>
+  </div>
+
+  <script>
+    function showTab(tab) {
+      const tabs = ['home','users', 'tournaments', 'matches', 'money'];
+      
+      tabs.forEach(t => {
+        document.getElementById(`section-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}`).classList.remove('active-tab');
+      });
+
+      document.getElementById(`section-${tab}`).classList.remove('hidden');
+      document.getElementById(`tab-${tab}`).classList.add('active-tab');
+    }
+
+    // Default tab
+    showTab('home');
+  </script>
+</body>
+</html>
+<script>
+  async function loadStats() {
+    const from = document.getElementById("fromDate").value;
+    const to = document.getElementById("toDate").value;
+
+    try {
+      const res = await fetch(`/admin/stats?from=${from}&to=${to}`);
+      const data = await res.json();
+
+      document.getElementById("userCount").textContent = data.users;
+      document.getElementById("tournamentCount").textContent = data.tournaments;
+      document.getElementById("matchCount").textContent = data.matches;
+      document.getElementById("moneyEarned").textContent = `₹${data.earned}`;
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+      alert("Failed to load dashboard stats");
+    }
+  }
+
+  // Load stats on default
+  window.addEventListener('DOMContentLoaded', () => {
+    loadStats();
+  });
+</script>
+

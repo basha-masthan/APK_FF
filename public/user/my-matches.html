@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Matches</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-4">
+
+  <!-- Back Button -->
+  <div class="flex items-center mb-6">
+    <a href="/tournaments.html" class="text-blue-400 hover:text-blue-600 font-semibold text-lg flex items-center">
+      ← Back to Tournaments
+    </a>
+  </div>
+
+  <!-- Page Title -->
+  <h1 class="text-3xl font-bold text-center mb-6">🎮 My Registered Matches</h1>
+
+  <!-- Matches Container -->
+  <div id="matchesContainer" class="space-y-4"></div>
+
+  <script>
+    // Fetch session to validate login first
+    fetch('/session-info')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.uname) {
+          window.location.href = "/login.html";
+          return;
+        }
+
+        // ✅ Load matches for logged in user
+        fetch('/Match/my-matches')   
+          .then(res => res.json())
+          .then(matches => {
+            const container = document.getElementById("matchesContainer");
+
+            if (!matches.length) {
+              container.innerHTML = `<p class="text-center text-gray-400">You haven't registered for any matches yet.</p>`;
+              return;
+            }
+
+            matches.forEach(match => {
+              const tournament = match.tournamentId;
+              const card = document.createElement("div");
+              card.className = "bg-gray-800 rounded-lg p-4 shadow-md";
+
+              card.innerHTML = `
+                <h2 class="text-xl font-bold text-blue-400 mb-2">🔥 ${tournament?.tournamentId || 'Unknown Tournament'}</h2>
+                <p>🆔 <strong>Free Fire ID:</strong> <span class="text-green-400">${match.freefireId}</span></p>
+                <p>📅 <strong>Date:</strong> ${new Date(tournament?.date).toLocaleDateString()}</p>
+                <p>🎯 <strong>Entry Fee:</strong> ₹${tournament?.entryFee}</p>
+                <p>🏆 <strong>Prize:</strong> ₹${tournament?.prizeMoney}</p>
+                <p>🎟️ <strong>Status:</strong> <span class="text-yellow-400">${match.status}</span></p>
+              `;
+
+              container.appendChild(card);
+            });
+          })
+          .catch(err => {
+            console.error("❌ Error loading matches:", err);
+            document.getElementById("matchesContainer").innerHTML =
+              `<p class="text-red-500 text-center">Failed to load your match registrations.</p>`;
+          });
+      })
+      .catch(() => {
+        window.location.href = "/login.html";
+      });
+  </script>
+</body>
+</html>

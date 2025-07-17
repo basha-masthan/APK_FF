@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tournaments</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+  <header class="bg-black text-white p-4 text-center text-2xl font-bold">
+    Game Tournaments
+  </header>
+
+  <main class="max-w-5xl mx-auto p-4">
+    <div id="tournamentContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+      <!-- Tournament cards go here -->
+    </div>
+  </main>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedGame = urlParams.get("game");
+
+    async function fetchTournaments() {
+      try {
+        const res = await fetch("/tournaments"); // Adjust to match your route
+        const tournaments = await res.json();
+
+        const filtered = selectedGame
+          ? tournaments.filter(t => t.game.name.toLowerCase() === selectedGame.toLowerCase())
+          : tournaments;
+
+        const container = document.getElementById("tournamentContainer");
+        container.innerHTML = "";
+
+        if (filtered.length === 0) {
+          container.innerHTML = `<p class="text-center col-span-2 text-gray-600">No tournaments found for "${selectedGame}"</p>`;
+          return;
+        }
+
+        filtered.forEach(t => {
+          const card = document.createElement("div");
+          card.className = "bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition";
+
+          const isFull = t.availableSlots === 0;
+
+          card.innerHTML = `
+            <div class="w-full h-40 bg-gray-200">
+              <img src="${t.game.logo || '/default-game.png'}" alt="${t.mapName} banner" class="w-full h-full object-cover" />
+            </div>
+
+            <div class="p-4 space-y-2">
+              <div class="flex flex-wrap justify-between items-center">
+                <h2 class="text-lg font-bold text-gray-800">${t.mapName}</h2>
+                <p class="text-sm text-gray-600">Slots: ${t.availableSlots}/${t.totalSlots}</p>
+                <span class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">${t.game.mode}</span>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 text-sm text-gray-700 font-medium">
+                <div class="bg-gray-100 rounded p-2 text-center">
+                  <p class="text-xs text-gray-500">Entry Fee</p>
+                  <p>₹${t.entryFee}</p>
+                </div>
+                <div class="bg-gray-100 rounded p-2 text-center">
+                  <p class="text-xs text-gray-500">Per Kill</p>
+                  <p>₹${t.perKillReward}</p>
+                </div>
+                <div class="bg-gray-100 rounded p-2 text-center">
+                  <p class="text-xs text-gray-500">Prize</p>
+                  <p>₹${t.prizeMoney}</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+                <p><strong>Status:</strong> <span class="font-semibold text-blue-600">${t.status}</span></p>
+                <p><strong>Starts In:</strong> <span class="countdown text-red-600 font-semibold" data-start="${t.startTime}"></span></p>
+              </div>
+
+              <button class="${isFull ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white py-2 px-4 w-full rounded shadow transition" ${isFull ? 'disabled' : ''}>
+                ${isFull ? 'Bookings Closed' : 'Book Tournament'}
+              </button>
+            </div>
+          `;
+
+          container.appendChild(card);
+        });
+
+        updateCountdowns();
+        setInterval(updateCountdowns, 1000);
+      } catch (err) {
+        console.error("Error fetching tournaments:", err);
+      }
+    }
+
+    function updateCountdowns() {
+      const now = new Date().getTime();
+      document.querySelectorAll('.countdown').forEach(el => {
+        const startTime = new Date(el.dataset.start).getTime();
+        const diff = startTime - now;
+
+        if (diff <= 0) {
+          el.textContent = "Started";
+          el.classList.replace('text-red-600', 'text-green-600');
+          return;
+        }
+
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        el.textContent = `${hours}h ${minutes}m ${seconds}s`;
+      });
+    }
+
+    fetchTournaments();
+  </script>
+</body>
+</html>

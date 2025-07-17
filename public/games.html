@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Select Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pop-in {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .pop-in {
+      animation: pop-in 0.4s ease-out both;
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen py-10 px-4">
+
+  <h1 class="text-4xl font-bold text-center text-yellow-400 mb-8">🎮 Choose Your Game</h1>
+
+  <div id="gameList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-2 sm:px-6">
+    <!-- Game cards appear here -->
+  </div>
+
+  <script>
+    // Extract username from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const username = urlParams.get("username");
+
+    async function loadGames() {
+      const gameList = document.getElementById('gameList');
+      gameList.innerHTML = '<p class="text-center text-gray-400 col-span-full">Loading games...</p>';
+
+      try {
+        const res = await fetch('/tournaments/AllGames'); // Adjust this route based on your actual API endpoint
+        const games = await res.json();
+
+        if (!Array.isArray(games) || games.length === 0) {
+          gameList.innerHTML = '<p class="text-center text-red-400 col-span-full">No games found.</p>';
+          return;
+        }
+
+        gameList.innerHTML = '';
+        games.forEach(game => {
+          const card = document.createElement('div');
+          card.className = "bg-gray-900 rounded-2xl overflow-hidden shadow-lg hover:shadow-yellow-400/30 transform hover:scale-105 transition duration-300 cursor-pointer pop-in";
+
+        card.onclick = () => {
+          const encodedGame = encodeURIComponent(game.gameName);
+          window.location.href = `/tournaments.html?game=${encodedGame}`;
+        };
+
+          card.innerHTML = `
+            <img src="${game.gameImg}" alt="${game.gameName}" class="w-full h-44 object-cover">
+            <div class="p-4 text-center">
+              <h2 class="text-xl font-bold text-indigo-400">${game.gameName}</h2>
+            </div>
+          `;
+          gameList.appendChild(card);
+        });
+
+      } catch (err) {
+        console.error('Error fetching games:', err);
+        gameList.innerHTML = '<p class="text-center text-red-400 col-span-full">Failed to load games.</p>';
+      }
+    }
+
+    loadGames();
+  </script>
+
+</body>
+</html>
