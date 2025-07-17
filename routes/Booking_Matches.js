@@ -8,13 +8,10 @@ const User = require('../models/User'); // use User instead of Wallet
 
 
 
-
 router.post('/book', requireLogin, async (req, res) => {
   try {
     const username = req.session.user?.uname;
     const { tournamentId, freefireId } = req.body;
-
-    console.log("Booking attempt:", { username, tournamentId, freefireId });
 
     if (!username) return res.status(401).json({ error: 'User not logged in' });
     if (!freefireId || freefireId.length < 5) {
@@ -22,10 +19,7 @@ router.post('/book', requireLogin, async (req, res) => {
     }
 
     const tournament = await Tournament.findById(tournamentId);
-    if (!tournament) {
-      console.log("Tournament not found:", tournamentId);
-      return res.status(404).json({ error: 'Tournament not found' });
-    }
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
 
     if (tournament.availableSlots <= 0) {
       return res.status(400).json({ error: 'No slots left' });
@@ -39,12 +33,23 @@ router.post('/book', requireLogin, async (req, res) => {
     const user = await User.findOne({ uname: username });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    if (user.balance < tournament.entryFee) {
-      return res.status(400).json({ error: 'Insufficient balance' });
+    const totalBalance = (user.balance || 0) + (user.winningMoney || 0);
+    if (totalBalance < tournament.entryFee) {
+      return res.status(400).json({ error: 'Insufficient total balance' });
     }
 
-    // Deduct and save
-    user.balance -= tournament.entryFee;
+    // Deduct from balance first, then winningMoney
+    let remainingFee = tournament.entryFee;
+
+    if (user.balance >= remainingFee) {
+      user.balance -= remainingFee;
+    } else {
+      remainingFee -= user.balance;
+      user.balance = 0;
+
+      user.winningMoney -= remainingFee;
+    }
+
     await user.save();
 
     await MatchRegistration.create({
@@ -66,12 +71,12 @@ router.post('/book', requireLogin, async (req, res) => {
     });
 
     res.json({ success: true });
+
   } catch (err) {
     console.error("Booking error:", err);
     res.status(500).json({ error: 'Booking failed internally' });
   }
 });
-
 
 
 

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Transactions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen p-8">
+
+  <div class="max-w-3xl mx-auto bg-white shadow-md rounded-lg p-6">
+    <h1 class="text-2xl font-bold mb-4 text-center">🔍 View User Transactions</h1>
+
+    <div class="flex flex-col md:flex-row gap-4 mb-6 items-center justify-center">
+      <input
+        type="text"
+        id="usernameInput"
+        placeholder="Enter username"
+        class="border border-gray-300 rounded px-4 py-2 w-full md:w-64"
+      />
+      <button
+        onclick="fetchUserTransactions()"
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
+        Fetch Transactions
+      </button>
+    </div>
+
+    <div id="transactionTable" class="overflow-x-auto hidden">
+      <table class="min-w-full table-auto border border-gray-200">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="px-4 py-2 border">Date</th>
+            <th class="px-4 py-2 border">Type</th>
+            <th class="px-4 py-2 border">Amount</th>
+            <th class="px-4 py-2 border">Status</th>
+          </tr>
+        </thead>
+        <tbody id="transactionsBody">
+          <!-- Dynamic content -->
+        </tbody>
+      </table>
+    </div>
+
+    <p id="noData" class="text-center mt-6 text-red-600 hidden">No transactions found for this username.</p>
+  </div>
+
+  <script>
+    async function fetchUserTransactions() {
+      const username = document.getElementById('usernameInput').value.trim();
+      const table = document.getElementById('transactionTable');
+      const noData = document.getElementById('noData');
+      const tbody = document.getElementById('transactionsBody');
+
+      table.classList.add('hidden');
+      noData.classList.add('hidden');
+      tbody.innerHTML = '';
+
+      if (!username) {
+        alert("Please enter a username.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/wallet/transaction');
+        const allTransactions = await res.json();
+
+        const userTxns = allTransactions.filter(txn => txn.username === username);
+
+        if (userTxns.length === 0) {
+          noData.classList.remove('hidden');
+          return;
+        }
+
+        userTxns.forEach(txn => {
+          const row = `
+            <tr>
+              <td class="px-4 py-2 border">${new Date(txn.createdAt).toLocaleString()}</td>
+              <td class="px-4 py-2 border">${txn.type}</td>
+              <td class="px-4 py-2 border">₹${txn.amount}</td>
+              <td class="px-4 py-2 border">${txn.status}</td>
+            </tr>
+          `;
+          tbody.insertAdjacentHTML('beforeend', row);
+        });
+
+        table.classList.remove('hidden');
+      } catch (err) {
+        console.error("Error fetching transactions:", err);
+        alert("Failed to fetch transactions. Please try again.");
+      }
+    }
+  </script>
+
+</body>
+</html>

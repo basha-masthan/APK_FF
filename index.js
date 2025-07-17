@@ -23,6 +23,7 @@ app.use(session({
   cookie: { secure: false } // true only if HTTPS
 }));
 
+
 // ✅ Serve static public files (like login form)
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -35,6 +36,8 @@ mongoose.connect(process.env.MONGO_URI, {
 
 
 
+
+
 app.get('/', requireLogin,  (req, res) => {
   res.sendFile(path.join(__dirname, '/index.html'));
 });
@@ -44,8 +47,6 @@ app.get('/', requireLogin,  (req, res) => {
 app.get('/Games/ff', requireLogin,  (req, res) => {
   res.sendFile(path.join(__dirname, 'Games/ff.html'));
 });
-
-
 
 
 app.post('/admin/login', (req, res) => {
@@ -101,8 +102,7 @@ app.get('/session-info', (req, res) => {
 
 const walletRoutes = require('./routes/wallet');
 app.use('/wallet', walletRoutes);
-const mailRoutes = require('./routes/mails');
-app.use('/mails', mailRoutes);
+
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,

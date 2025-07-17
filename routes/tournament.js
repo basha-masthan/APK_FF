@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Tournament = require('../models/Tournament');
 const Game = require('../models/games');
-
+const requireLogin = require('../middleware/requireLogin');
 
 
 
@@ -30,7 +30,7 @@ router.post('/adds', async (req, res) => {
 
 
 // Fetch all games
-router.get('/AllGames', async (req, res) => {
+router.get('/AllGames',  async (req, res) => {
   try {
     const games = await Game.find().sort({ name: 1 });
     res.json(games);
@@ -43,7 +43,7 @@ router.get('/AllGames', async (req, res) => {
 
 // get tournaments
 // GET /api/tournaments?game=Free%20Fire
-router.get('/', async (req, res) => {
+router.get('/',  async (req, res) => {
   const { game } = req.query;
 
   try {
@@ -116,12 +116,28 @@ router.post('/create', async (req, res) => {
     });
  
     await newTournament.save();
-    res.redirect('/tournaments.html');
+    res.redirect('/admin/dashboard.html');
   } catch (err) {
     res.status(400).send(
       `<h2 style="color:red;text-align:center;">❌ Error: ${err.message}</h2><a href="/tournaments/create">Try again</a>`
     );
   }
 });
+
+
+router.patch('/:id', async (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  await Tournament.findByIdAndUpdate(id, updates);
+  res.sendStatus(200);
+});
+
+// Delete tournament
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  await Tournament.findByIdAndDelete(id);
+  res.sendStatus(200);
+});
+
 
 module.exports = router;

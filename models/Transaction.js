@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const transactionSchema = new mongoose.Schema({
   username: { type: String, required: true },
-  type: { type: String, enum: ['Deposit', 'Withdraw', 'Entry Fee'], required: true },
+  type: { type: String, enum: ['Deposit', 'Withdraw', 'Entry Fee', 'Winning Amount'], required: true },
   amount: { type: Number, required: true },
   status: { type: String, enum: ['Success', 'Pending', 'Rejected'], default: 'Pending' },
   note: { type: String },

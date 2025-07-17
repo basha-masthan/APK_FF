@@ -8,12 +8,25 @@
 </head>
 <body class="bg-gray-950 text-white p-4 min-h-screen">
 
+  <div class="flex items-center mb-6">
+    <a href="javascript:history.back()" class="text-blue-400 hover:text-blue-600 font-semibold text-lg flex items-center">
+      ← Back to Tournaments
+    </a>
+  </div>
   <h1 class="text-3xl font-bold mb-6 text-center text-blue-400">📋 My Match Results</h1>
 
   <div id="resultsContainer" class="space-y-10"></div>
 
   <script>
-    fetch('/results/mine')
+ fetch('/tournaments/AllGames')
+  .then(res => {
+    if (res.status === 401) {
+      window.location.href = '/login.html';
+    }
+    return res.json();
+  })
+
+    fetch('/Match/Results')
       .then(res => res.json())
       .then(data => {
         const container = document.getElementById('resultsContainer');

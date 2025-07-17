@@ -104,7 +104,7 @@
     const txns = await txnRes.json();
     const tbody = document.getElementById('txnTable');
     tbody.innerHTML = '';
-    txns.forEach(txn => {
+    txns.reverse().forEach(txn => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="p-2 border">${new Date(txn.date).toLocaleString()}</td>

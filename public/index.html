@@ -222,9 +222,22 @@
       }
     }
   </style>
+
 </head>
 <body>
-
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "88ab01c2-a8e3-498f-93e4-dcba1f86c14e",
+      safari_web_id: "web.onesignal.auto.5d035d80-811e-4f05-a17d-f7e13950e2b6",
+      notifyButton: {
+        enable: true,
+      },
+    });
+  });
+</script>
   <div class="header">
     <a href="/login.html"><button class="login-btn"><i class="fas fa-sign-in-alt"></i> Login</button></a>
     <h1>Game Adudham ra</h1>

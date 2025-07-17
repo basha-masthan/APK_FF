@@ -10,7 +10,7 @@
 
   <!-- Back Button -->
   <div class="flex items-center mb-6">
-    <a href="/tournaments.html" class="text-blue-400 hover:text-blue-600 font-semibold text-lg flex items-center">
+    <a href="javascript:history.back()" class="text-blue-400 hover:text-blue-600 font-semibold text-lg flex items-center">
       ← Back to Tournaments
     </a>
   </div>
@@ -22,6 +22,15 @@
   <div id="matchesContainer" class="space-y-4"></div>
 
   <script>
+
+ fetch('/tournaments/AllGames')
+  .then(res => {
+    if (res.status === 401) {
+      window.location.href = '/login.html';
+    }
+    return res.json();
+  })
+
     // Fetch session to validate login first
     fetch('/session-info')
       .then(res => res.json())

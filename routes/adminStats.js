@@ -2,9 +2,14 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const requireLogin = require('../middleware/requireLogin');
+// mongoose
+const mongoose = require('mongoose');
 const Tournament = require('../models/Tournament');
 const MatchRegistration = require('../models/MatchRegistration');
 const Transaction = require('../models/Transaction');
+
+
+
 
 router.get('/stats', async (req, res) => {
   const { from, to } = req.query;
@@ -89,13 +94,13 @@ router.put('/match-registrations/:tournamentId/:username/update', async (req, re
   const { kills, moneyEarned } = req.body;
 
   try {
-    // 1. Find the Tournament
+    // 1. Find the Tournament using tournamentId (custom field, not _id)
     const tournament = await Tournament.findOne({ tournamentId });
     if (!tournament) {
       return res.status(404).json({ success: false, error: 'Tournament not found' });
     }
 
-    // 2. Find and update the Match Registration
+    // 2. Update MatchRegistration for this tournament._id and username
     const registration = await MatchRegistration.findOneAndUpdate(
       { tournamentId: tournament._id, username },
       { $set: { kills, moneyEarned } },
@@ -106,11 +111,21 @@ router.put('/match-registrations/:tournamentId/:username/update', async (req, re
       return res.status(404).json({ success: false, error: 'Match registration not found' });
     }
 
-    // 3. Update the User's winningMoney
+    // 3. Update User's winningMoney and create a transaction
     const user = await User.findOne({ uname: username });
     if (user) {
       user.winningMoney = (user.winningMoney || 0) + (parseFloat(moneyEarned) || 0);
       await user.save();
+
+      // Create a new Transaction for the winnings
+      const newTxn = new Transaction({
+        username,
+        type: 'Winning Amount',
+        amount: parseFloat(moneyEarned),
+        status: 'Success',
+        note: `Winnings from tournament ${tournamentId}`
+      });
+      await newTxn.save();
     }
 
     res.json({ success: true, data: registration });
@@ -122,19 +137,74 @@ router.put('/match-registrations/:tournamentId/:username/update', async (req, re
 
 
 
-
 const withdraw = require('../models/withdraw');
 
-const {
-  getAllWithdrawRequests,
-  updateWithdrawRequest
-} = require('../controllers/WithdrawUpdates');
+router.get('/withdraw', async (req, res) => {
+  try {
+    const requests = await withdraw.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: requests });
+  } catch (err) {
+    console.error("Fetch withdraw requests error:", err);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
 
-// Admin: View all withdraw requests
-router.get('/', getAllWithdrawRequests);
 
-// Admin: Approve or cancel withdraw request
-router.put('/:id', updateWithdrawRequest);
+router.put('/withdraw/:id', async (req, res) => {
+  const { status } = req.body; // 'Completed' or 'Cancelled'
+  const { id } = req.params;
+
+  try {
+    // 🟡 Validate input
+    if (!['Completed', 'Cancelled'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid status' });
+    }
+
+    // 🔍 1. Find the withdraw request
+    const request = await withdraw.findById(id);
+    if (!request) {
+      return res.status(404).json({ success: false, error: 'Withdraw request not found' });
+    }
+
+    // 🔍 2. Find and update matching transaction
+    const txn = await Transaction.findOneAndUpdate(
+      {
+        username: request.username,
+        type: 'Withdraw',
+        amount: { $eq: parseFloat(request.amount) }, // Ensure number match
+        status: 'Pending'
+      },
+      { status },
+      { new: true }
+    );
+
+    if (!txn) {
+      console.warn(`❗ No matching transaction for user=${request.username}, amount=₹${request.amount}`);
+      return res.status(404).json({ success: false, error: 'Matching transaction not found' });
+    }
+
+    // 💸 3. If Cancelled, refund the user
+    if (status === 'Cancelled') {
+      const user = await User.findOne({ uname: request.username });
+      if (user) {
+        user.winningMoney = (user.winningMoney || 0) + parseFloat(request.amount);
+        await user.save();
+        console.log(`💸 Refunded ₹${request.amount} to ${user.uname}`);
+      } else {
+        console.warn(`❗ User not found: ${request.username}`);
+        return res.status(404).json({ success: false, error: 'User not found for refund' });
+      }
+    }
+
+    // 🗑️ 4. Remove the withdraw request from DB
+    await withdraw.findByIdAndDelete(id);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Withdraw update error:", err);
+    res.status(500).json({ success: false, error: "Failed to update withdraw request" });
+  }
+});
 
 
 module.exports = router;
