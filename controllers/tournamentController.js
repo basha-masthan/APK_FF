@@ -1,48 +1,28 @@
 const Tournament = require('../models/Tournament');
+const MatchRegistration = require('../models/MatchRegistration');
+const User = require('../models/User');
+const Transaction = require('../models/Transaction');
 
-exports.getAllTournaments = async (req, res) => {
-  try {
-    const tournaments = await Tournament.find();
-    res.json(tournaments);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch tournaments' });
-  }
-};
+exports.markTournamentComplete = async (req, res) => {
+  const { id } = req.params;
 
-exports.createTournament = async (req, res) => {
   try {
-    const newTournament = new Tournament(req.body);
-    await newTournament.save();
-    res.status(201).json({ success: true, tournament: newTournament });
-  } catch (err) {
-    res.status(500).json({ success: false, error: 'Failed to create tournament' });
-  }
-};
-
-exports.updateTournament = async (req, res) => {
-  try {
-    const updated = await Tournament.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-    if (!updated) {
+    const tournament = await Tournament.findById(id);
+    if (!tournament) {
       return res.status(404).json({ success: false, error: 'Tournament not found' });
     }
-    res.json({ success: true, tournament: updated });
-  } catch (err) {
-    res.status(500).json({ success: false, error: 'Failed to update tournament' });
-  }
-};
 
-exports.deleteTournament = async (req, res) => {
-  try {
-    const deleted = await Tournament.findByIdAndDelete(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ success: false, error: 'Tournament not found' });
-    }
-    res.json({ success: true, message: 'Tournament deleted' });
+    // 1. Update tournament status
+    tournament.status = 'Completed';
+    await tournament.save();
+
+    // 2. (Optional) Distribute prizes if there's a prize pool
+    // This is a placeholder for more complex logic.
+    // For now, we'll just mark it as complete.
+
+    res.json({ success: true, message: 'Tournament marked as completed.' });
   } catch (err) {
-    res.status(500).json({ success: false, error: 'Failed to delete tournament' });
+    console.error('Error marking tournament complete:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };

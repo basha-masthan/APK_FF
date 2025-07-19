@@ -46,9 +46,9 @@
     </div>
 
     
-    <button id="watchEarnBtn" onclick="watchEarn();" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+    <!-- <button id="watchEarnBtn" onclick="watchEarn();" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
       📺 Watch & Earn
-    </button>
+    </button> -->
 
     
   </header>
@@ -134,7 +134,7 @@
 </script>
 
   <script>
-     fetch('/tournaments/AllGames')
+     fetch('users/tournaments')
   .then(res => {
     if (res.status === 401) {
       window.location.href = '/login.html';
@@ -170,74 +170,74 @@
 }
 
 
-    async function fetchTournaments() {
-      try {
-        const res = await fetch("/tournaments"); // Adjust to match your route
-        const tournaments = await res.json();
+   async function fetchTournaments() {
+  try {
+    const res = await fetch("/users/tournaments"); // adjust your API route as needed
+    const tournaments = await res.json();
 
-        const filtered = selectedGame
-          ? tournaments.filter(t => t.game.name.toLowerCase() === selectedGame.toLowerCase())
-          : tournaments;
+    const filtered = tournaments.filter(t => {
+      const matchesGame = !selectedGame || t.game.name.toLowerCase() === selectedGame.toLowerCase();
+      const isNotCompleted = t.status !== 'Completed';
+      return matchesGame && isNotCompleted;
+    });
 
-        const container = document.getElementById("tournamentContainer");
-        container.innerHTML = "";
+    const container = document.getElementById("tournamentContainer");
+    container.innerHTML = "";
 
-        if (filtered.length === 0) {
-          container.innerHTML = `<p class="text-center col-span-2 text-gray-600">No tournaments found for "${selectedGame}"</p>`;
-          return;
-        }
+    if (filtered.length === 0) {
+      container.innerHTML = `<p class="text-center col-span-2 text-gray-600">No tournaments found${selectedGame ? ` for "${selectedGame}"` : ""}</p>`;
+      return;
+    }
 
-        filtered.forEach(t => {
-  if (t.status === 'Completed') return; // ✅ Don't render completed tournaments
+    filtered.forEach(t => {
+      const isFull = t.availableSlots === 0;
+      const isStarted = new Date(t.startTime).getTime() <= Date.now();
 
-  const card = document.createElement("div");
-  card.className = "bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition";
+      const card = document.createElement("div");
+      card.className = "bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition";
 
-  const isFull = t.availableSlots === 0;
-  const isStarted = new Date(t.startTime).getTime() <= Date.now();
-
-  card.innerHTML = `
-    <div class="w-full h-40 bg-gray-200">
-      <img src="${t.game.logo || '/default-game.png'}" alt="${t.mapName} banner" class="w-full h-full object-cover" />
-    </div>
-
-    <div class="p-4 space-y-2">
-      <div class="flex flex-wrap justify-between items-center">
-        <h2 class="text-lg font-bold text-gray-800">${t.mapName}</h2>
-        <p class="text-sm text-gray-600">Available Slots: ${t.availableSlots}</p>
-        <span class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">${t.game.mode}</span>
-      </div>
-
-      <div class="grid grid-cols-3 gap-2 text-sm text-gray-700 font-medium">
-        <div class="bg-gray-100 rounded p-2 text-center">
-          <p class="text-xs text-gray-500">Entry Fee</p>
-          <p>₹${t.entryFee}</p>
+      card.innerHTML = `
+        <div class="w-full h-40 bg-gray-200">
+          <img src="${t.game.logo || '/default-game.png'}" alt="${t.mapName} banner" class="w-full h-full object-cover" />
         </div>
-        <div class="bg-gray-100 rounded p-2 text-center">
-          <p class="text-xs text-gray-500">Per Kill</p>
-          <p>₹${t.perKillReward}</p>
+
+        <div class="p-4 space-y-2">
+          <div class="flex flex-wrap justify-between items-center">
+            <h2 class="text-lg font-bold text-gray-800">${t.mapName}</h2>
+            <p class="text-sm text-gray-600">Available Slots: ${t.availableSlots}</p>
+            <span class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">${t.game.mode}</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-sm text-gray-700 font-medium">
+            <div class="bg-gray-100 rounded p-2 text-center">
+              <p class="text-xs text-gray-500">Entry Fee</p>
+              <p>₹${t.entryFee}</p>
+            </div>
+            <div class="bg-gray-100 rounded p-2 text-center">
+              <p class="text-xs text-gray-500">Per Kill</p>
+              <p>₹${t.perKillReward}</p>
+            </div>
+            <div class="bg-gray-100 rounded p-2 text-center">
+              <p class="text-xs text-gray-500">Prize</p>
+              <p>₹${t.prizeMoney}</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+            <p><strong>Status:</strong> <span class="font-semibold text-blue-600">${t.status}</span></p>
+            <p><strong>Starts In:</strong> <span class="countdown text-red-600 font-semibold" data-start="${t.startTime}"></span></p>
+          </div>
+
+          <button onclick="bookNow('${t._id}', ${t.entryFee})"
+            class="${isFull || isStarted ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white py-2 px-4 w-full rounded shadow transition"
+            ${isFull || isStarted ? 'disabled' : ''}>
+            ${isFull ? 'Bookings Closed' : isStarted ? 'Started' : 'Book Tournament'}
+          </button>
         </div>
-        <div class="bg-gray-100 rounded p-2 text-center">
-          <p class="text-xs text-gray-500">Prize</p>
-          <p>₹${t.prizeMoney}</p>
-        </div>
-      </div>
+      `;
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
-        <p><strong>Status:</strong> <span class="font-semibold text-blue-600">${t.status}</span></p>
-        <p><strong>Starts In:</strong> <span class="countdown text-red-600 font-semibold" data-start="${t.startTime}"></span></p>
-      </div>
-
-      <button onclick="bookNow('${t._id}', ${t.entryFee})"
-        class="${isFull || isStarted ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white py-2 px-4 w-full rounded shadow transition"
-        ${isFull || isStarted ? 'disabled' : ''}>
-        ${isFull ? 'Bookings Closed' : isStarted ? 'Started' : 'Book Tournament'}
-      </button>
-    </div>
-  `;
-
-  container.appendChild(card);
-});
+      container.appendChild(card);
+    });
 
 
         updateCountdowns();
@@ -276,7 +276,7 @@
     return;
   }
 
-  const confirmed = confirm("Are you sure you want to register?");
+  const confirmed = confirm(`Confirm registration? Entry Fee: ₹${entryFee}`);
   if (!confirmed) return;
 
   try {
@@ -295,13 +295,14 @@
       alert("✅ Registration successful!");
       location.reload();
     } else {
-      alert("❌ Booking failed: " + (data.error || "Something went wrong."));
+      alert("❌ Booking failed: " + (data.error || "Unknown error"));
     }
   } catch (err) {
-    alert("❌ Error registering for tournament");
+    alert("❌ Error contacting server. Try again later.");
     console.error(err);
   }
 }
+
 
   </script>
 </body>

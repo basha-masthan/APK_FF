@@ -13,32 +13,43 @@ router.post('/book', requireLogin, async (req, res) => {
     const username = req.session.user?.uname;
     const { tournamentId, freefireId } = req.body;
 
-    if (!username) return res.status(401).json({ error: 'User not logged in' });
+    if (!username) return res.status(401).json({ success: false, error: 'User not logged in' });
+
     if (!freefireId || freefireId.length < 5) {
-      return res.status(400).json({ error: 'Invalid Free Fire ID' });
+      return res.status(400).json({ success: false, error: 'Invalid Free Fire ID' });
     }
 
     const tournament = await Tournament.findById(tournamentId);
-    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+    if (!tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
     if (tournament.availableSlots <= 0) {
-      return res.status(400).json({ error: 'No slots left' });
+      return res.status(400).json({ success: false, error: 'No slots left' });
     }
 
-    const existing = await MatchRegistration.findOne({ tournamentId, freefireId });
+    const existing = await MatchRegistration.findOne({
+      tournamentId,
+      $or: [
+        { freefireId },
+        { username }
+      ]
+    });
+
     if (existing) {
-      return res.status(400).json({ error: 'This Free Fire ID already registered' });
+      return res.status(400).json({
+        success: false,
+        error: 'User or Free Fire ID already registered in this tournament'
+      });
     }
 
     const user = await User.findOne({ uname: username });
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
     const totalBalance = (user.balance || 0) + (user.winningMoney || 0);
     if (totalBalance < tournament.entryFee) {
-      return res.status(400).json({ error: 'Insufficient total balance' });
+      return res.status(400).json({ success: false, error: 'Insufficient total balance' });
     }
 
-    // Deduct from balance first, then winningMoney
+    // 💰 Deduct fee from balance first, then winningMoney
     let remainingFee = tournament.entryFee;
 
     if (user.balance >= remainingFee) {
@@ -46,7 +57,6 @@ router.post('/book', requireLogin, async (req, res) => {
     } else {
       remainingFee -= user.balance;
       user.balance = 0;
-
       user.winningMoney -= remainingFee;
     }
 
@@ -74,10 +84,18 @@ router.post('/book', requireLogin, async (req, res) => {
 
   } catch (err) {
     console.error("Booking error:", err);
-    res.status(500).json({ error: 'Booking failed internally' });
+
+    // Handle duplicate key errors
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Duplicate entry: Username or Free Fire ID already used'
+      });
+    }
+
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
-
 
 
 router.get('/my-matches', requireLogin, async (req, res) => {
@@ -97,9 +115,13 @@ router.get('/my-matches', requireLogin, async (req, res) => {
 
 
 
-
+// GET /Match/Results
 router.get('/Results', requireLogin, async (req, res) => {
-  const username = req.session.user?.uname;
+  const username = req.session?.user?.uname;
+
+  if (!username) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
 
   try {
     const registrations = await MatchRegistration.find({ username });
@@ -108,27 +130,34 @@ router.get('/Results', requireLogin, async (req, res) => {
 
     for (const reg of registrations) {
       const tournament = await Tournament.findById(reg.tournamentId);
+      if (!tournament) continue;
+
       const allPlayers = await MatchRegistration.find({ tournamentId: reg.tournamentId });
 
       resultsMap[reg.tournamentId] = {
-        tournament,
-        players: await Promise.all(allPlayers.map(async (player) => ({
+        tournament: {
+          tournamentId: tournament._id,
+          date: tournament.date,
+          perKillReward: tournament.perKillReward,
+        },
+        players: allPlayers.map(player => ({
           username: player.username,
           freefireId: player.freefireId,
-          kills: player.kills,
-          moneyEarned: player.moneyEarned,
+          kills: player.kills || 0,
+          moneyEarned: player.moneyEarned || 0,
           joinedAt: player.createdAt,
-          isCurrentUser: player.username === username
-        })))
+          isCurrentUser: player.username === username,
+        }))
       };
     }
 
     res.json({ success: true, data: resultsMap });
   } catch (err) {
     console.error("Error fetching match results:", err);
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
+
 
 
 

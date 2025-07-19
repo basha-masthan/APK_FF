@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const requireLogin = require('../middleware/requireLogin');
 const User = require('../models/User');
+// tournaments moddel
+const Tournament = require('../models/Tournament');
+const Game = require('../models/games');
 // const bcrypt = require('bcryptjs');
 
 // ✅ GET all users (admin only)
@@ -150,7 +153,31 @@ router.get('/profile', requireLogin, async (req, res) => {
   }
 });
 
-// 🔒 PUT update own profile (edit-profile)
+router.get('/tournaments', requireLogin, async (req, res) => {
+  const { game } = req.query;
+
+  try {
+    let query = {};
+    if (game) {
+      query['game.name'] = game; // 👈 nested field
+    }
+
+    const tournaments = await Tournament.find(query);
+    res.json(tournaments);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch tournaments' });
+  }
+});
+
+router.get('/AllGames', requireLogin, async (req, res) => {
+  try {
+    const games = await Game.find().sort({ name: 1 });
+    res.json(games);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch games' });
+  }
+});
+
 
 
 module.exports = router;

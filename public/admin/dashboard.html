@@ -39,6 +39,7 @@
       <button onclick="showTab('transaction')" id="tab-transaction" class="tab-btn flex items-center px-4 py-2 rounded hover:bg-blue-100 transition">
   <i class="fas fa-cog mr-2"></i> Transactions Control
 </button>
+
       </nav>
     </aside>
 
@@ -79,41 +80,67 @@
     <div class="bg-white p-6 rounded-lg shadow text-center">
       <h3 class="text-xl font-semibold mb-2">💰 Money Earned</h3>
       <p id="moneyEarned" class="text-3xl font-bold text-red-600">₹0</p>
-
     </div>
   </div>
 </section>
 
+
+
+
 <script>
-  async function calculateMoneyEarned() {
-    try {
-      const res = await fetch('/wallet/transactions');
-      const data = await res.json();
+  async function calculateAdminProfit() {
+  try {
+    const [tournamentsRes, registrationsRes] = await Promise.all([
+      fetch('/tournaments'),
+      fetch('/admin/match-registrations') // Admin route to get all match registrations
+    ]);
 
-      let deposits = 0;
-      let winnings = 0;
-      let withdrawals = 0;
-      let bookingFees = 0;
+    const tournaments = await tournamentsRes.json();
+    const registrations = await registrationsRes.json();
 
-      data.forEach(txn => {
-        if (txn.status !== 'Completed') return; // Only consider completed txns
+    let totalAdminProfit = 0;
 
-        if (txn.type === 'Deposit') deposits += txn.amount;
-        else if (txn.type === 'Winning') winnings += txn.amount;
-        else if (txn.type === 'Withdraw') withdrawals += txn.amount;
-        else if (txn.type === 'Booking Fee') bookingFees += txn.amount;
-      });
+    tournaments.forEach(tour => {
+      const {
+        _id,
+        totalSlots,
+        availableSlots,
+        entryFee,
+        perKillReward,
+        prizeMoney
+      } = tour;
 
-      const totalEarned = (deposits + winnings) - (withdrawals + bookingFees);
-      document.getElementById('moneyEarned').innerText = `₹${totalEarned.toFixed(2)}`;
-    } catch (err) {
-      console.error("Error fetching transactions:", err);
-      document.getElementById('moneyEarned').innerText = '₹0';
-    }
+      // How many users registered
+      const registeredCount = totalSlots - availableSlots;
+
+      // Income from entry fees
+      const totalCollected = registeredCount * entryFee;
+
+      // Get all kills for this tournament
+      const tourRegs = registrations.filter(reg =>
+        reg.tournamentId === _id || reg.tournamentId?._id === _id
+      );
+
+      const totalKills = tourRegs.reduce((acc, reg) => acc + (reg.kills || 0), 0);
+
+      const totalExpenses = (totalKills * perKillReward) + prizeMoney;
+
+      const profit = totalCollected - totalExpenses;
+      totalAdminProfit += profit;
+    });
+
+    // Display on dashboard
+    document.getElementById('moneyEarned').textContent = `₹${totalAdminProfit}`;
+
+  } catch (err) {
+    console.error("💥 Failed to calculate admin profit:", err);
+    document.getElementById('moneyEarned').textContent = "Error";
   }
+}
 
-  // Call this on page load or tab click
-  calculateMoneyEarned();
+calculateAdminProfit();
+
+
 </script>
 
 
@@ -182,7 +209,7 @@ eyeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-
 </svg>`;
 eyeBtn.onclick = () => {
   // Redirect to admin/SelectedTcx.html with username as query param
-  window.location.href = `/admin/SelectedTcx.html?username=${encodeURIComponent(user.uname)}`;
+  showTab('payments', user.uname);
 };
 
 tdEye.appendChild(eyeBtn);
@@ -329,11 +356,15 @@ tdEye.appendChild(eyeBtn);
 
 <section id="section-tournaments" class="p-6">
   <h2 class="text-2xl font-bold mb-4 text-gray-800">🕹️ Tournaments (Game Wise)</h2>
-  <div id="game-tournament-groups" class="space-y-8"></div>
-  <!-- create tournament button at right end -->
-   <a href="/admin/add-tournaments.html" class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-300 animate-pulse hover:animate-none text-center w-full md:w-auto">
-    Create Tournament
-  </a>
+
+  <div class="flex justify-end mb-4">
+    <a href="/admin/add-tournaments.html"
+       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all w-fit">
+      ➕ Create Tournament
+    </a>
+  </div>
+
+  <div id="game-tournament-groups" class="space-y-10"></div>
 </section>
 
 <script>
@@ -353,110 +384,110 @@ async function fetchTournaments() {
   const container = document.getElementById("game-tournament-groups");
   container.innerHTML = '';
 
-  for (const [gameName, tours] of Object.entries(grouped)) {
-    const tableHtml = `
-      <div>
-        <h3 class="text-xl font-semibold text-blue-700 mb-2">${gameName}</h3>
-        <div class="overflow-x-auto bg-white rounded-xl shadow border">
-          <table class="min-w-full text-sm text-left table-auto">
-            <thead class="bg-blue-100 text-gray-700">
-              <tr>
-                <th class="px-4 py-2">Tournament ID</th>
-                <th class="px-4 py-2">Logo</th>
-                <th class="px-4 py-2">Map</th>
-                <th class="px-4 py-2">Mode</th>
-                <th class="px-4 py-2">Slots</th>
-                <th class="px-4 py-2">Entry Fee</th>
-                <th class="px-4 py-2">Prize</th>
-                <th class="px-4 py-2">Start Time</th>
-                <th class="px-4 py-2">Status</th>
-                <th class="px-4 py-2">Actions</th>
+  for (const [gameName, list] of Object.entries(grouped)) {
+    const section = document.createElement('div');
+    section.innerHTML = `
+      <h3 class="text-xl font-semibold text-blue-700 mb-2">${gameName}</h3>
+      <div class="overflow-x-auto bg-white rounded-xl shadow border">
+        <table class="min-w-full text-sm text-left table-auto">
+          <thead class="bg-blue-100 text-gray-700">
+            <tr>
+              <th class="px-4 py-2">Tournament ID</th>
+              <th class="px-4 py-2">Logo</th>
+              <th class="px-4 py-2">Map</th>
+              <th class="px-4 py-2">Mode</th>
+              <th class="px-4 py-2">Slots</th>
+              <th class="px-4 py-2">Entry Fee</th>
+              <th class="px-4 py-2">Prize</th>
+              <th class="px-4 py-2">Start Time</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Room ID</th>
+              <th class="px-4 py-2">Room Pass</th>
+              <th class="px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map(t => `
+              <tr data-id="${t._id}" class="border-t hover:bg-gray-50">
+                <td class="px-4 py-2 font-mono text-xs">${t.tournamentId}</td>
+                <td class="px-4 py-2"><img src="${t.game.logo}" class="h-10 w-10 rounded object-contain" /></td>
+                <td class="px-4 py-2 mapName">${t.mapName}</td>
+                <td class="px-4 py-2">${t.game.mode}</td>
+                <td class="px-4 py-2">${t.availableSlots}/${t.totalSlots}</td>
+                <td class="px-4 py-2 entryFee">${t.entryFee}</td>
+                <td class="px-4 py-2 prizeMoney">${t.prizeMoney}</td>
+                <td class="px-4 py-2 startTime">${new Date(t.startTime).toISOString().slice(0,16)}</td>
+                <td class="px-4 py-2 status">${t.status}</td>
+                <td class="px-4 py-2 roomId">${t.room?.id || ''}</td>
+                <td class="px-4 py-2 roomPass">${t.room?.password || ''}</td>
+                <td class="px-4 py-2 actionBtns space-x-2">
+                  <button onclick="editTournament('${t._id}', this)" class="text-blue-600 hover:underline">✏️ Edit</button>
+                  <button onclick="deleteTournament('${t._id}')" class="text-red-600 hover:underline">🗑️ Delete</button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              ${tours.map(t => `
-                <tr data-id="${t._id}" class="border-t hover:bg-gray-50">
-                  <td class="px-4 py-2 font-mono text-xs">${t.tournamentId}</td>
-                  <td class="px-4 py-2"><img src="${t.game.logo}" class="h-10 w-10 rounded object-contain"></td>
-                  <td class="px-4 py-2 mapName">${t.mapName}</td>
-                  <td class="px-4 py-2">${t.game.mode}</td>
-                  <td class="px-4 py-2">${t.availableSlots}/${t.totalSlots}</td>
-                  <td class="px-4 py-2 entryFee">${t.entryFee}</td>
-                  <td class="px-4 py-2 prizeMoney">${t.prizeMoney}</td>
-                  <td class="px-4 py-2">${new Date(t.startTime).toLocaleString()}</td>
-                  <td class="px-4 py-2 status">
-                    <span class="text-sm font-semibold ${t.status === 'Completed' ? 'text-red-500' : 'text-green-600'}">${t.status}</span>
-                  </td>
-                  <td class="px-4 py-2 space-x-2 actionBtns">
-                    <button onclick="editTournament('${t._id}', this)" class="text-blue-600 hover:underline">✏️ Edit</button>
-                    <button onclick="deleteTournament('${t._id}')" class="text-red-600 hover:underline">🗑️ Delete</button>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
+            `).join('')}
+          </tbody>
+        </table>
       </div>
     `;
-    container.innerHTML += tableHtml;
+    container.appendChild(section);
   }
 }
 
 function editTournament(id, btn) {
   if (editingRowId && editingRowId !== id) {
-    alert("❗ Please save or cancel the current edit first.");
+    alert("❗ Save or cancel the current row first.");
     return;
   }
 
   editingRowId = id;
 
   const row = btn.closest('tr');
-  const mapTd = row.querySelector('.mapName');
-  const entryTd = row.querySelector('.entryFee');
-  const prizeTd = row.querySelector('.prizeMoney');
-  const statusTd = row.querySelector('.status');
-  const actionsTd = row.querySelector('.actionBtns');
+  const getField = cls => row.querySelector(`.${cls}`);
 
-  const oldMap = mapTd.textContent;
-  const oldEntry = entryTd.textContent;
-  const oldPrize = prizeTd.textContent;
-  const oldStatus = statusTd.textContent.trim();
+  const fields = ['mapName', 'entryFee', 'prizeMoney', 'startTime', 'status', 'roomId', 'roomPass'];
+  fields.forEach(f => {
+    const cell = getField(f);
+    const value = cell.textContent.trim();
+    if (f === 'status') {
+      cell.innerHTML = `
+        <select class="w-full border p-1 rounded">
+          ${['Upcoming','Ongoing','Completed'].map(status =>
+            `<option value="${status}" ${value === status ? 'selected' : ''}>${status}</option>`
+          ).join('')}
+        </select>
+      `;
+    } else if (f === 'startTime') {
+      cell.innerHTML = `<input type="datetime-local" value="${value}" class="w-full border p-1 rounded" />`;
+    } else {
+      cell.innerHTML = `<input type="text" value="${value}" class="w-full border p-1 rounded" />`;
+    }
+  });
 
-  mapTd.innerHTML = `<input type="text" value="${oldMap}" class="border px-2 py-1 rounded w-full" />`;
-  entryTd.innerHTML = `<input type="number" value="${oldEntry}" class="border px-2 py-1 rounded w-full" />`;
-  prizeTd.innerHTML = `<input type="number" value="${oldPrize}" class="border px-2 py-1 rounded w-full" />`;
-
-  statusTd.innerHTML = `
-    <select class="border px-2 py-1 rounded w-full">
-      <option value="Upcoming" ${oldStatus === 'Upcoming' ? 'selected' : ''}>Upcoming</option>
-      <option value="Ongoing" ${oldStatus === 'Ongoing' ? 'selected' : ''}>Ongoing</option>
-      <option value="Completed" ${oldStatus === 'Completed' ? 'selected' : ''}>Completed</option>
-    </select>
-  `;
-
-  actionsTd.innerHTML = `
+  getField('actionBtns').innerHTML = `
     <button onclick="saveTournament('${id}', this)" class="text-green-600 hover:underline">💾 Save</button>
-    <button onclick="cancelEdit('${id}')" class="text-gray-600 hover:underline">❌ Cancel</button>
+    <button onclick="cancelEdit()" class="text-gray-600 hover:underline">❌ Cancel</button>
   `;
 }
 
-function cancelEdit(id) {
+function cancelEdit() {
   editingRowId = null;
-  fetchTournaments(); // Reload table
+  fetchTournaments();
 }
 
 async function saveTournament(id, btn) {
   const row = btn.closest('tr');
-  const mapVal = row.querySelector('.mapName input').value;
-  const entryVal = parseInt(row.querySelector('.entryFee input').value);
-  const prizeVal = parseInt(row.querySelector('.prizeMoney input').value);
-  const statusVal = row.querySelector('.status select').value;
 
   const payload = {
-    mapName: mapVal,
-    entryFee: entryVal,
-    prizeMoney: prizeVal,
-    status: statusVal
+    mapName: row.querySelector('.mapName input').value,
+    entryFee: parseInt(row.querySelector('.entryFee input').value),
+    prizeMoney: parseInt(row.querySelector('.prizeMoney input').value),
+    startTime: new Date(row.querySelector('.startTime input').value).toISOString(),
+    status: row.querySelector('.status select').value,
+    room: {
+      id: row.querySelector('.roomId input').value,
+      password: row.querySelector('.roomPass input').value
+    }
   };
 
   const res = await fetch(`/tournaments/${id}`, {
@@ -466,32 +497,28 @@ async function saveTournament(id, btn) {
   });
 
   if (res.ok) {
-    alert("✅ Tournament updated!");
+    alert("✅ Tournament updated.");
     editingRowId = null;
     fetchTournaments();
   } else {
-    alert("❌ Update failed.");
+    alert("❌ Failed to update tournament.");
   }
 }
 
 async function deleteTournament(id) {
   if (!confirm("Are you sure you want to delete this tournament?")) return;
 
-  const res = await fetch(`/tournaments/${id}`, {
-    method: 'DELETE'
-  });
-
+  const res = await fetch(`/tournaments/${id}`, { method: 'DELETE' });
   if (res.ok) {
     alert("🗑️ Tournament deleted.");
     fetchTournaments();
   } else {
-    alert("❌ Delete failed.");
+    alert("❌ Failed to delete.");
   }
 }
 
 fetchTournaments();
 </script>
-
 
 
 <!-- Match Registrations Section -->
@@ -552,11 +579,12 @@ fetchTournaments();
             </div>
 
             <p class="text-sm text-white mb-2">
-              Total Slots: ${group.tournament.totalSlots} |
-              Available: ${group.tournament.availableSlots} |
-              Per Kill Reward: ₹${reward} |
-              Date: ${new Date(group.tournament.date).toLocaleDateString()}
-            </p>
+  Total Slots: ${group.tournament.totalSlots} |
+  Available: ${group.tournament.availableSlots} |
+  Per Kill Reward: ₹${reward} |
+  Date: ${group.tournament.date ? new Date(group.tournament.date).toLocaleDateString() : 'N/A'}
+</p>
+
 
             <div class="overflow-x-auto">
               <table class="table-auto w-full text-white text-left border border-gray-700">
@@ -732,98 +760,129 @@ fetchWithdrawRequests();
       <!-- payment requests -->
        
 
-    </main>
-  </div>
 
   <!-- transaction history -->
 <!-- Transaction Control Section -->
 
-<section id="section-transaction" class=""> 
-  <div id="section-transaction" class=" p-4">
-  <h2 class="text-2xl font-semibold mb-4">💸 Transactions</h2>
-  
-  <table class="w-full text-left border rounded-xl shadow">
-    <thead>
-      <tr class="bg-gray-100">
-        <th class="p-2 border">User</th>
-        <th class="p-2 border">Type</th>
-        <th class="p-2 border">Amount</th>
-        <th class="p-2 border">Status</th>
-        <th class="p-2 border">Action</th>
-      </tr>
-    </thead>
-    <tbody id="adminTxnTable">
-      <tr><td colspan="5" class="text-center p-4">Loading...</td></tr>
-    </tbody>
-  </table>
-</div>
+<section id="section-transaction" class="hidden">
+  <div class="p-4">
+    <h2 class="text-2xl font-semibold mb-4">💸 User Wallet Summary</h2>
+    
+    <table class="w-full text-left border rounded-xl shadow">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="p-2 border">User</th>
+          <th class="p-2 border">Matches Registered</th>
+          <th class="p-2 border">Deposited</th>
+          <th class="p-2 border">Winnings</th>
+          <th class="p-2 border">Action</th>
+        </tr>
+      </thead>
+      <tbody id="walletSummaryTable">
+        <tr><td colspan="5" class="text-center p-4">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 🔍 Modal Popup -->
+  <div id="txnModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative">
+      <button onclick="closeTxnModal()" class="absolute top-2 right-4 text-xl font-bold">×</button>
+      <h2 class="text-xl font-semibold mb-4" id="txnModalTitle">Transactions</h2>
+      <table class="w-full text-left border">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 border">Type</th>
+            <th class="p-2 border">Amount</th>
+            <th class="p-2 border">Status</th>
+            <th class="p-2 border">Date</th>
+          </tr>
+        </thead>
+        <tbody id="txnModalTable">
+          <tr><td colspan="4" class="text-center p-4">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 <script>
-  async function loadAdminTransactions() {
-    try {
-      const res = await fetch('/wallet/transactions');
-      const data = await res.json();
-      const table = document.getElementById('adminTxnTable');
-      table.innerHTML = '';
+async function loadWalletSummaries() {
+  try {
+    const res = await fetch('/wallet/transactions');
+    const data = await res.json();
+    const table = document.getElementById('walletSummaryTable');
+    table.innerHTML = '';
 
-      if (data.length === 0) {
-        table.innerHTML = `<tr><td colspan="5" class="text-center p-4">No transactions found.</td></tr>`;
-        return;
-      }
-
-      data.reverse().forEach(txn => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td class="p-2 border">${txn.username || 'N/A'}</td>
-          <td class="p-2 border">${txn.type}</td>
-          <td class="p-2 border">₹${txn.amount}</td>
-          <td class="p-2 border">${txn.status}</td>
-          <td class="p-2 border">
-            ${txn.status === 'Pending' ? `
-              <button onclick="markTxn('${txn._id}', 'Completed')" class="text-green-600">✔ Complete</button> /
-              <button onclick="markTxn('${txn._id}', 'Cancelled')" class="text-red-600">✖ Cancel</button>
-            ` : '—'}
-          </td>
-        `;
-        table.appendChild(row);
-      });
-    } catch (err) {
-      console.error(err);
-      document.getElementById('adminTxnTable').innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-600">Error loading transactions</td></tr>`;
+    if (data.length === 0) {
+      table.innerHTML = `<tr><td colspan="5" class="text-center p-4">No users found.</td></tr>`;
+      return;
     }
-  }
 
-  async function markTxn(id, status) {
-    try {
-      const res = await fetch(`/admin/update-transaction/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert('✅ Transaction updated.');
-        loadAdminTransactions();
-      } else {
-        alert('❌ Update failed.');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('⚠️ Error updating transaction.');
+    data.forEach(user => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="p-2 border">${user.username}</td>
+        <td class="p-2 border">${user.matches || 0}</td>
+        <td class="p-2 border">₹${user.deposited || 0}</td>
+        <td class="p-2 border">₹${user.winnings || 0}</td>
+        <td class="p-2 border">
+          <button class="text-blue-600 hover:underline" onclick="showTxnModal('${user.username}')">View</button>
+        </td>
+      `;
+      table.appendChild(row);
+    });
+  } catch (err) {
+    console.error(err);
+    document.getElementById('walletSummaryTable').innerHTML = `<tr><td colspan="5" class="text-center text-red-600">Error loading summary</td></tr>`;
+  }
+}
+
+async function showTxnModal(username) {
+  document.getElementById('txnModal').classList.remove('hidden');
+  document.getElementById('txnModalTitle').textContent = `Transactions for ${username}`;
+
+  try {
+    const res = await fetch(`/wallet/transactions/${username}`);
+    const data = await res.json();
+    const modalTable = document.getElementById('txnModalTable');
+    modalTable.innerHTML = '';
+
+    if (data.length === 0) {
+      modalTable.innerHTML = `<tr><td colspan="4" class="text-center p-4">No transactions found.</td></tr>`;
+      return;
     }
-  }
 
-  // Optional: Auto-load when tab is clicked
-  document.getElementById('tab-transaction').addEventListener('click', loadAdminTransactions);
+    data.reverse().forEach(txn => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="p-2 border">${txn.type}</td>
+        <td class="p-2 border">₹${txn.amount}</td>
+        <td class="p-2 border">${txn.status}</td>
+        <td class="p-2 border">${new Date(txn.createdAt).toLocaleString()}</td>
+      `;
+      modalTable.appendChild(row);
+    });
+  } catch (err) {
+    console.error(err);
+    document.getElementById('txnModalTable').innerHTML = `<tr><td colspan="4" class="text-center text-red-600">Error loading transactions</td></tr>`;
+  }
+}
+
+function closeTxnModal() {
+  document.getElementById('txnModal').classList.add('hidden');
+}
+
+document.getElementById('tab-transaction').addEventListener('click', loadWalletSummaries);
 </script>
-
 </section>
 
 
+</main></div>
 
 
 <script>
-function showTab(tab) {
-  const tabs = ['home', 'users', 'tournaments', 'matches', 'money', 'transaction']; // <-- Added 'transaction'
+function showTab(tab, username = null) {
+  const tabs = ['home', 'users', 'tournaments', 'matches', 'money', 'transaction',];
 
   tabs.forEach(t => {
     document.getElementById(`section-${t}`).classList.add('hidden');
@@ -832,11 +891,63 @@ function showTab(tab) {
 
   document.getElementById(`section-${tab}`).classList.remove('hidden');
   document.getElementById(`tab-${tab}`).classList.add('active-tab');
+
+  if (tab === 'payments' && username) {
+    document.getElementById('tab-payments').classList.remove('hidden');
+    loadUserTransactions(username);
+  } else {
+    document.getElementById('tab-payments').classList.add('hidden');
+  }
 }
 
   // Default tab
   showTab('home');
 </script>
+
+<script>
+  async function loadUserTransactions(username) {
+    try {
+      const res = await fetch(`/wallet/transactions/${username}`);
+      const data = await res.json();
+      const container = document.getElementById('payments-container');
+      container.innerHTML = '';
+
+      if (data.length === 0) {
+        container.innerHTML = `<p>No transactions found for ${username}.</p>`;
+        return;
+      }
+
+      const table = document.createElement('table');
+      table.className = 'w-full text-left border rounded-xl shadow';
+      table.innerHTML = `
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="p-2 border">Type</th>
+            <th class="p-2 border">Amount</th>
+            <th class="p-2 border">Status</th>
+            <th class="p-2 border">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(txn => `
+            <tr>
+              <td class="p-2 border">${txn.type}</td>
+              <td class="p-2 border">₹${txn.amount}</td>
+              <td class="p-2 border">${txn.status}</td>
+              <td class="p-2 border">${new Date(txn.createdAt).toLocaleString()}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      `;
+      container.appendChild(table);
+    } catch (err) {
+      console.error(err);
+      document.getElementById('payments-container').innerHTML = `<p class="text-red-600">Error loading transactions for ${username}</p>`;
+    }
+  }
+</script>
+
+
 
 </body>
 </html>

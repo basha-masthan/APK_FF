@@ -105,8 +105,19 @@ router.get('/balance', requireLogin, async (req, res) => {
   }
 });
 
-router.get('/transactions', requireLogin, async (req, res) => {
+router.get('/transactions',  async (req, res) => {
   const username = req.session.user.uname;
+
+  try {
+    const transactions = await Transaction.find({ username }).sort({ createdAt: -1 });
+    res.json(transactions);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+});
+
+router.get('/transactions/:username',  async (req, res) => {
+  const { username } = req.params;
 
   try {
     const transactions = await Transaction.find({ username }).sort({ createdAt: -1 });
@@ -136,6 +147,44 @@ router.get('/balance/total', requireLogin, async (req, res) => {
 });
 
 
+// GET /wallet/transactions/summary
+router.get('/transactions/summary', async (req, res) => {
+  try {
+    const users = await User.find({});
+    const transactions = await Transaction.find({});
+    const registrations = await MatchRegistration.find({});
+
+    const summary = users.map(user => {
+      const userTxns = transactions.filter(txn => txn.username === user.username);
+      const userRegs = registrations.filter(r => r.username === user.username);
+
+      const deposited = userTxns
+        .filter(txn => txn.type === 'deposit' && txn.status === 'Success')
+        .reduce((sum, txn) => sum + txn.amount, 0);
+
+      const withdrawn = userTxns
+        .filter(txn => txn.type === 'withdraw' && txn.status !== 'Cancelled')
+        .reduce((sum, txn) => sum + txn.amount, 0);
+
+      const winnings = userTxns
+        .filter(txn => txn.type === 'winning' && txn.status === 'Success')
+        .reduce((sum, txn) => sum + txn.amount, 0);
+
+      return {
+        username: user.username,
+        deposited,
+        withdrawn,
+        winnings,
+        matches: userRegs.length,
+      };
+    });
+
+    res.json(summary);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch wallet summary' });
+  }
+});
 
 
 router.post('/withdraw', requireLogin, async (req, res) => {

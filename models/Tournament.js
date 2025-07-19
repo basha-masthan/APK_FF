@@ -57,6 +57,10 @@ const tournamentSchema = new mongoose.Schema({
     type: String,
     enum: ['Upcoming', 'Ongoing', 'Completed'],
     default: 'Upcoming'
+  },
+  room:{
+    id: { type: String },
+    password: { type: String },
   }
 
 }, { timestamps: true });

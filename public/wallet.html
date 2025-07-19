@@ -85,9 +85,7 @@
 
 
     <script>
-      let transactionId = null;
-
-      async function fetchWalletData() {
+async function fetchWalletData() {
   try {
     // Fetch normal balance
     const balanceRes = await fetch('/wallet/balance');
@@ -102,9 +100,13 @@
     // Fetch transaction history
     const txnRes = await fetch('/wallet/transactions');
     const txns = await txnRes.json();
+
+    // ✅ Sort by date descending (latest first)
+    txns.sort((a, b) => new Date(b.date) - new Date(a.date));
+
     const tbody = document.getElementById('txnTable');
     tbody.innerHTML = '';
-    txns.reverse().forEach(txn => {
+    txns.forEach(txn => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="p-2 border">${new Date(txn.date).toLocaleString()}</td>

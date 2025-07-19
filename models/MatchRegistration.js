@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const matchRegistrationSchema = new mongoose.Schema({
-  username: { type: String, required: true },
+  username: { type: String, required: true , unique: true },
   freefireId: { type: String, required: true, unique: true },
   tournamentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tournament', required: true },
   status: { type: String, enum: ['Registered', 'Cancelled'], default: 'Registered' },
@@ -14,3 +14,5 @@ const matchRegistrationSchema = new mongoose.Schema({
 
 const MatchRegistration = mongoose.model('MatchRegistration', matchRegistrationSchema);
 module.exports = MatchRegistration;
+
+

@@ -54,10 +54,6 @@
       <button onclick="navigatetowallet();"><h2 id="totalHeading" class="text-l font-bold text-green-400">Total Balance: ₹0</h2></button>
     </div>
 
-    
-    <button id="watchEarnBtn" onclick="watchEarn();" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
-      📺 Watch & Earn
-    </button>
 
     
   </header>
@@ -71,7 +67,7 @@
 
   <script>
 
-    fetch('/tournaments/AllGames')
+    fetch('/users/AllGames')
   .then(res => {
     if (res.status === 401) {
       window.location.href = '/login.html';

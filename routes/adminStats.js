@@ -21,6 +21,7 @@ router.get('/stats', async (req, res) => {
     const users = await User.countDocuments({ createdAt: { $gte: start, $lte: end } });
     const tournaments = await Tournament.countDocuments({ createdAt: { $gte: start, $lte: end } });
     const matches = await MatchRegistration.countDocuments({ createdAt: { $gte: start, $lte: end } });
+   
     
     const transactions = await Transaction.aggregate([
       {
@@ -48,62 +49,72 @@ router.get('/stats', async (req, res) => {
 });
 
 
-// GET all match registrations grouped by tournament
 router.get('/match-registrations', async (req, res) => {
   try {
-    const registrations = await MatchRegistration.find().populate('tournamentId');
-    
-    const grouped = {};
-    for (const reg of registrations) {
-      const tournament = reg.tournamentId;
-      const tournamentKey = tournament.tournamentId; // ✅ Use your custom field (like "FFS-7890")
+    const registrations = await MatchRegistration.find().populate('tournamentId').lean();
 
-      if (!grouped[tournamentKey]) {
-        grouped[tournamentKey] = {
+    // 🔁 Group by tournamentId
+    const grouped = {};
+
+    for (const reg of registrations) {
+      const tid = reg.tournamentId?._id?.toString();
+
+      // skip if tournament not found or deleted
+      if (!tid || !reg.tournamentId) continue;
+
+      if (!grouped[tid]) {
+        grouped[tid] = {
           tournament: {
-            tournamentId: tournament.tournamentId, // ✅ Include for frontend display
-            totalSlots: tournament.totalSlots,
-            availableSlots: tournament.availableSlots,
-            perKillReward: tournament.perKillReward,
-            date: tournament.date, // ✅ Optional but useful
+            dbId: reg.tournamentId._id, // Pass the database ID
+            tournamentId: reg.tournamentId.tournamentId,
+            totalSlots: reg.tournamentId.totalSlots,
+            availableSlots: reg.tournamentId.availableSlots,
+            perKillReward: reg.tournamentId.perKillReward,
+            date: reg.tournamentId.date
           },
-          players: [],
+          players: []
         };
       }
 
-      grouped[tournamentKey].players.push({
+      grouped[tid].players.push({
         username: reg.username,
         freefireId: reg.freefireId,
-        kills: reg.kills,
-        moneyEarned: reg.moneyEarned
+        kills: reg.kills || 0,
+        moneyEarned: reg.moneyEarned || 0
       });
     }
 
     res.json({ success: true, data: grouped });
   } catch (err) {
-    console.error("Error fetching match registrations:", err);
-    res.status(500).json({ success: false, error: 'Server error' });
+    console.error('🚨 /match-registrations error:', err);
+    res.status(500).json({ success: false, error: 'server-error', message: err.message });
   }
 });
 
 
+
+
 // ✅ Update kills + moneyEarned based on username (admin)
-// PUT /admin/match-registrations/:username/update
 router.put('/match-registrations/:tournamentId/:username/update', async (req, res) => {
   const { tournamentId, username } = req.params;
   const { kills, moneyEarned } = req.body;
 
   try {
-    // 1. Find the Tournament using tournamentId (custom field, not _id)
-    const tournament = await Tournament.findOne({ tournamentId });
+    // ✅ Find tournament by Mongo ID
+    const tournament = await Tournament.findById(tournamentId);
     if (!tournament) {
       return res.status(404).json({ success: false, error: 'Tournament not found' });
     }
 
-    // 2. Update MatchRegistration for this tournament._id and username
+    // ✅ Update match registration
     const registration = await MatchRegistration.findOneAndUpdate(
       { tournamentId: tournament._id, username },
-      { $set: { kills, moneyEarned } },
+      {
+        $set: {
+          kills: parseInt(kills),
+          moneyEarned: parseFloat(moneyEarned),
+        },
+      },
       { new: true }
     );
 
@@ -111,27 +122,25 @@ router.put('/match-registrations/:tournamentId/:username/update', async (req, re
       return res.status(404).json({ success: false, error: 'Match registration not found' });
     }
 
-    // 3. Update User's winningMoney and create a transaction
+    // ✅ Update user's winning balance and log transaction
     const user = await User.findOne({ uname: username });
     if (user) {
-      user.winningMoney = (user.winningMoney || 0) + (parseFloat(moneyEarned) || 0);
+      user.winningMoney = (user.winningMoney || 0) + parseFloat(moneyEarned);
       await user.save();
 
-      // Create a new Transaction for the winnings
-      const newTxn = new Transaction({
+      await Transaction.create({
         username,
         type: 'Winning Amount',
         amount: parseFloat(moneyEarned),
         status: 'Success',
-        note: `Winnings from tournament ${tournamentId}`
+        note: `Winnings from tournament ${tournament.title}`,
       });
-      await newTxn.save();
     }
 
     res.json({ success: true, data: registration });
   } catch (err) {
-    console.error('Error updating match registration:', err);
-    res.status(500).json({ success: false, error: 'Server error' });
+    console.error('Match update error:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

@@ -22,16 +22,7 @@
   <div id="matchesContainer" class="space-y-4"></div>
 
   <script>
-
- fetch('/tournaments/AllGames')
-  .then(res => {
-    if (res.status === 401) {
-      window.location.href = '/login.html';
-    }
-    return res.json();
-  })
-
-    // Fetch session to validate login first
+    // Ensure session is valid
     fetch('/session-info')
       .then(res => res.json())
       .then(data => {
@@ -40,8 +31,8 @@
           return;
         }
 
-        // ✅ Load matches for logged in user
-        fetch('/Match/my-matches')   
+        // ✅ Load matches
+        fetch('/Match/my-matches')
           .then(res => res.json())
           .then(matches => {
             const container = document.getElementById("matchesContainer");
@@ -59,10 +50,12 @@
               card.innerHTML = `
                 <h2 class="text-xl font-bold text-blue-400 mb-2">🔥 ${tournament?.tournamentId || 'Unknown Tournament'}</h2>
                 <p>🆔 <strong>Free Fire ID:</strong> <span class="text-green-400">${match.freefireId}</span></p>
-                <p>📅 <strong>Date:</strong> ${new Date(tournament?.date).toLocaleDateString()}</p>
+                <p>📅 <strong>Date:</strong> ${new Date(tournament?.startTime || tournament?.date).toLocaleString()}</p>
                 <p>🎯 <strong>Entry Fee:</strong> ₹${tournament?.entryFee}</p>
                 <p>🏆 <strong>Prize:</strong> ₹${tournament?.prizeMoney}</p>
                 <p>🎟️ <strong>Status:</strong> <span class="text-yellow-400">${match.status}</span></p>
+                ${tournament?.room?.id ? `<p>🔑 <strong>Room ID:</strong> <span class="text-pink-400">${tournament.room.id}</span></p>` : ''}
+                ${tournament?.room?.password ? `<p>🔒 <strong>Password:</strong> <span class="text-pink-400">${tournament.room.password}</span></p>` : ''}
               `;
 
               container.appendChild(card);

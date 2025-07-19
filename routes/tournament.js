@@ -3,6 +3,7 @@ const router = express.Router();
 const Tournament = require('../models/Tournament');
 const Game = require('../models/games');
 const requireLogin = require('../middleware/requireLogin');
+const tournamentController = require('../controllers/tournamentController');
 
 
 
@@ -29,7 +30,7 @@ router.post('/adds', async (req, res) => {
 });
 
 
-// Fetch all games
+// Fetch all games for admin
 router.get('/AllGames',  async (req, res) => {
   try {
     const games = await Game.find().sort({ name: 1 });
@@ -42,7 +43,7 @@ router.get('/AllGames',  async (req, res) => {
 
 
 // get tournaments
-// GET /api/tournaments?game=Free%20Fire
+// GET /tournaments?game=Free%20Fire
 router.get('/',  async (req, res) => {
   const { game } = req.query;
 
@@ -60,7 +61,6 @@ router.get('/',  async (req, res) => {
 });
 
 
-// Helper function to generate a 6-digit unique ID
 
 function generate6DigitId() {
   return Math.floor(100000 + Math.random() * 900000).toString();
