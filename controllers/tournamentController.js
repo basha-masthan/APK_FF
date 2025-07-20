@@ -242,6 +242,7 @@ exports.tournamentCompleteUpdate = async (req, res) => {
 
     console.log(`🎉 Tournament completion response:`, response);
     res.json(response);
+    
 
   } catch (err) {
     console.error('🚨 Tournament completion error:', err);

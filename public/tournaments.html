@@ -9,8 +9,50 @@
 <body class="bg-gray-950 text-white min-h-screen py-10 px-4">
 
   <header class="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 px-4">
- 
+  <div id="notificationBanner" class="hidden fixed top-0 left-0 right-0 bg-blue-600 text-white p-3 text-center z-50">
+    <span>🔔 Enable notifications to get tournament updates!</span>
+    <button onclick="requestNotificationPermission()" class="ml-4 bg-white text-blue-600 px-3 py-1 rounded text-sm">
+      Enable
+    </button>
+    <button onclick="hideNotificationBanner()" class="ml-2 opacity-70 hover:opacity-100">×</button>
+  </div>
+ <script type="module" src="./js/firebase-config.js"></script>
+  <script>
+    // Check notification permission
+    function checkNotificationPermission() {
+      if ('Notification' in window && Notification.permission === 'default') {
+        document.getElementById('notificationBanner').classList.remove('hidden');
+      }
+    }
 
+    async function requestNotificationPermission() {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        hideNotificationBanner();
+        window.initializeFCM();
+      }
+    }
+
+    function hideNotificationBanner() {
+      document.getElementById('notificationBanner').classList.add('hidden');
+    }
+
+    // Test notification function
+    async function testNotification() {
+      try {
+        const response = await fetch('/notifications/test', { method: 'POST' });
+        const result = await response.json();
+        console.log('Test result:', result);
+      } catch (error) {
+        console.error('Test error:', error);
+      }
+    }
+
+    // Check permission on load
+    document.addEventListener('DOMContentLoaded', checkNotificationPermission);
+
+    // Your existing tournament scripts...
+  </script>
 
 
   <!-- User Dropdown -->
