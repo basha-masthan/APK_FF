@@ -48,8 +48,8 @@
   <!-- two buttons in dev tag side by side
    name as "show balance" & another one is "watch & earn" -->
 
-    <div class="bg-gray-800 p-4 rounded-lg shadow-lg max-w-md mx-auto text-white text-center justify-center items-center">
-      <button onclick="navigatetowallet();"><h2 id="totalHeading" class="text-l font-bold text-green-400">Total Balance: ₹0</h2></button>
+    <div class="w-full md:w-auto inline-flex justify-between items-center bg-gray-800 text-white px-4 py-2 rounded-md shadow-md hover:bg-gray-700 transition duration-300 text-sm font-medium">
+      <button onclick="navigatetowallet();"><h2 id="totalHeading" class="text-l font-bold text-green-400 p-1">Total Balance: ₹0</h2></button>
     </div>
 
 
@@ -65,7 +65,7 @@
 
   <script>
 
-    fetch('/games/AllGames')
+    fetch('/games/mygames')
   .then(res => {
     if (res.status === 401) {
       window.location.href = '/login.html';
@@ -194,4 +194,23 @@
     function watchEarn() {
       window.location.href = '/user/watch&earn.html';
     }
+
+
+document.addEventListener('keydown', function(event) {
+  // Disable Alt + Left/Right Arrow keys
+  if (event.altKey && (event.keyCode === 37 || event.keyCode === 39)) {
+    event.preventDefault();
+    return false;
+  }
+});
+
+ function disableBackNavigation() {
+  history.pushState(null, null, location.href);
+  
+  window.addEventListener('popstate', function(event) {
+    history.pushState(null, null, location.href);
+  });
+}
+
+
 </script>

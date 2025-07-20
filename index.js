@@ -61,7 +61,7 @@ app.post('/admin/login', (req, res) => {
 
 
 const userRoutes = require('./routes/userRoutes');
-app.use('/users', userRoutes);
+app.use('/users',  userRoutes);
 
 app.post('/users/login', async (req, res) => {
   const { email, password } = req.body;
@@ -91,6 +91,17 @@ app.use('/admin', adminStatsRoutes);
 
 const tournamentRoutes = require('./routes/tournament');
 app.use('/games', tournamentRoutes);
+
+app.get('/games/mygames', requireLogin,  async (req, res) => {
+  try {
+    const games = await Game.find().sort({ name: 1 });
+    res.json(games);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch games' });
+  }
+});
+
+
 
 app.get('/session-info', (req, res) => {
   if (req.session.user) {
