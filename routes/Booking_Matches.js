@@ -124,7 +124,10 @@ router.get('/Results', requireLogin, async (req, res) => {
   }
 
   try {
+    console.log(`🔍 Fetching simplified results for user: ${username}`);
+    
     const registrations = await MatchRegistration.find({ username });
+    console.log(`📊 Found ${registrations.length} registrations for user`);
 
     const resultsMap = {};
 
@@ -134,30 +137,37 @@ router.get('/Results', requireLogin, async (req, res) => {
 
       const allPlayers = await MatchRegistration.find({ tournamentId: reg.tournamentId });
 
+      // Simplified tournament data - only essential fields
       resultsMap[reg.tournamentId] = {
         tournament: {
-          tournamentId: tournament._id,
-          date: tournament.date,
-          perKillReward: tournament.perKillReward,
+          tournamentId: tournament.tournamentId,
+          _id: tournament._id,
+          startTime: tournament.startTime,
+          date: tournament.startTime, // Fallback
+          mapName: tournament.mapName,
+          prizeMoney: tournament.prizeMoney,
+          status: tournament.status,
+          mvp: tournament.mvp
         },
         players: allPlayers.map(player => ({
           username: player.username,
-          freefireId: player.freefireId,
           kills: player.kills || 0,
           moneyEarned: player.moneyEarned || 0,
-          joinedAt: player.createdAt,
           isCurrentUser: player.username === username,
         }))
       };
+      
+      console.log(`✅ Added tournament ${tournament.tournamentId} with ${allPlayers.length} players`);
     }
 
+    console.log(`📤 Sending ${Object.keys(resultsMap).length} tournaments in results`);
     res.json({ success: true, data: resultsMap });
+    
   } catch (err) {
-    console.error("Error fetching match results:", err);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    console.error("❌ Error fetching match results:", err);
+    res.status(500).json({ success: false, message: "Internal server error", error: err.message });
   }
 });
-
 
 
 

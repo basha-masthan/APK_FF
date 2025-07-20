@@ -134,47 +134,63 @@ exports.tournamentCompleteUpdate = async (req, res) => {
     let failedUpdates = [];
     let totalMoneyDistributed = 0;
 
+    // ✅ NEW: Track if this is a re-assignment
+    const isReassignment = tournament.status === 'Completed';
+
     // Process player updates
     for (const update of updates) {
       const { username, kills, moneyEarned } = update;
 
       try {
+        // Get current registration to check previous values
+        const currentRegistration = await MatchRegistration.findOne({ 
+          tournamentId: tournament._id, 
+          username 
+        });
+
+        if (!currentRegistration) {
+          console.log(`❌ Registration not found: ${username} in ${tournamentId}`);
+          failedUpdates.push({ username, error: 'Registration not found' });
+          continue;
+        }
+
+        // ✅ NEW: Calculate money difference (only add the difference)
+        const previousMoney = currentRegistration.moneyEarned || 0;
+        const newMoney = parseFloat(moneyEarned) || 0;
+        const moneyDifference = newMoney - previousMoney;
+
         // Update the match registration
         const registration = await MatchRegistration.findOneAndUpdate(
           { tournamentId: tournament._id, username },
           {
             $set: {
               kills: parseInt(kills) || 0,
-              moneyEarned: parseFloat(moneyEarned) || 0,
+              moneyEarned: newMoney,
             },
           },
           { new: true }
         );
 
-        if (!registration) {
-          console.log(`❌ Registration not found: ${username} in ${tournamentId}`);
-          failedUpdates.push({ username, error: 'Registration not found' });
-          continue;
-        }
+        console.log(`✅ Updated ${username}: ${kills} kills, ₹${moneyEarned} (difference: ₹${moneyDifference})`);
 
-        console.log(`✅ Updated ${username}: ${kills} kills, ₹${moneyEarned}`);
-
-        // Update user's winning money and create transaction
+        // ✅ FIXED: Only update user money if there's a positive difference
         const user = await User.findOne({ uname: username });
-        if (user) {
-          user.winningMoney = (user.winningMoney || 0) + parseFloat(moneyEarned);
+        if (user && moneyDifference !== 0) {
+          user.winningMoney = (user.winningMoney || 0) + moneyDifference;
           await user.save();
 
-          // Create transaction record
-          await Transaction.create({
-            username,
-            type: 'Tournament Completion',
-            amount: parseFloat(moneyEarned),
-            status: 'Success',
-            note: `Tournament ${tournament.tournamentId} completed - ${kills} kills`,
-          });
+          // ✅ NEW: Only create transaction for money changes
+          if (moneyDifference !== 0) {
+            await Transaction.create({
+              username,
+              type: isReassignment ? 'Tournament Re-assignment' : 'Tournament Completion',
+              amount: moneyDifference,
+              status: 'Success',
+              note: `Tournament ${tournament.tournamentId} ${isReassignment ? 're-assigned' : 'completed'} - ${kills} kills`,
+            });
+          }
 
-          totalMoneyDistributed += parseFloat(moneyEarned);
+          totalMoneyDistributed += moneyDifference;
         }
 
         updatedCount++;
@@ -185,12 +201,14 @@ exports.tournamentCompleteUpdate = async (req, res) => {
       }
     }
 
-    // ✅ NEW: Update tournament status to Completed
-    tournament.status = 'Completed';
+    // ✅ FIXED: Update tournament status to Completed (if not already)
+    if (tournament.status !== 'Completed') {
+      tournament.status = 'Completed';
+    }
 
-    // ✅ NEW: Update assignment badge and count
+    // ✅ FIXED: Update assignment badge and count (always increment for re-assignments)
     tournament.updateAssignmentBadge();
-    tournament.addAssignmentHistory(updatedCount, 'Admin'); // You can pass actual admin username if available
+    tournament.addAssignmentHistory(updatedCount, 'Admin');
 
     // Update MVP for this tournament
     try {
@@ -211,14 +229,11 @@ exports.tournamentCompleteUpdate = async (req, res) => {
       console.error(`❌ MVP update error:`, mvpError);
     }
 
-    // Save tournament with all updates
-    await tournament.save();
-
-    // ✅ NEW: Generate badge message
+    // ✅ FIXED: Generate badge message
     let badgeMessage = '';
     switch(tournament.assignmentBadge) {
       case 'assigned':
-        badgeMessage = 'Badge: Assigned Successfully ✅';
+        badgeMessage = isReassignment ? 'Badge: Re-assigned Successfully ✅' : 'Badge: Assigned Successfully ✅';
         break;
       case 'multiple':
         badgeMessage = `Badge: Multiple Assignment (${tournament.assignmentCount} times) 🔄`;
@@ -227,6 +242,9 @@ exports.tournamentCompleteUpdate = async (req, res) => {
         badgeMessage = 'Badge: Assignment Error ❌';
     }
 
+    // ✅ IMPORTANT: Save tournament AFTER all badge updates
+    await tournament.save();
+          
     const response = {
       success: true,
       updatedCount,
@@ -235,15 +253,15 @@ exports.tournamentCompleteUpdate = async (req, res) => {
       assignmentCount: tournament.assignmentCount,
       badgeMessage,
       totalMoneyDistributed,
+      isReassignment,
       mvp: tournament.mvp,
       failedUpdates: failedUpdates.length > 0 ? failedUpdates : undefined,
-      message: `Tournament ${tournament.tournamentId} completed successfully. ${badgeMessage}`
+      message: `Tournament ${tournament.tournamentId} ${isReassignment ? 're-assigned' : 'completed'} successfully. ${badgeMessage}`
     };
 
     console.log(`🎉 Tournament completion response:`, response);
     res.json(response);
     
-
   } catch (err) {
     console.error('🚨 Tournament completion error:', err);
     res.status(500).json({ 
