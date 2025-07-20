@@ -7,7 +7,9 @@ const mongoose = require('mongoose');
 const Tournament = require('../models/Tournament');
 const MatchRegistration = require('../models/MatchRegistration');
 const Transaction = require('../models/Transaction');
+const withdraw = require('../models/withdraw');
 
+const tournamentController = require('../controllers/tournamentController');
 
 
 
@@ -49,171 +51,116 @@ router.get('/stats', async (req, res) => {
 });
 
 
-router.get('/match-registrations', async (req, res) => {
-  try {
-    const registrations = await MatchRegistration.find().populate('tournamentId').lean();
+const { getMatchRegistrations, updateMatchRegistration, bulkUpdateMatchRegistrations } = require('../controllers/matchRegistrationController');
 
-    // 🔁 Group by tournamentId
+
+router.get('/match-registrations', getMatchRegistrations);
+router.put('/match-registrations/:tournamentId/:username/update', updateMatchRegistration);
+
+router.put('/match-registrations/bulk-update', bulkUpdateMatchRegistrations);
+
+
+const { getAllWithdrawRequests, updateWithdrawRequest } = require('../controllers/WithdrawUpdates');
+
+router.get('/withdraw', getAllWithdrawRequests);
+router.put('/withdraw/:id', updateWithdrawRequest);
+
+
+router.get('/tournaments', tournamentController.getTournaments);
+router.post('/tournaments/create', tournamentController.createTournament);
+router.patch('/tournaments/:id', tournamentController.updateTournament);
+router.delete('/tournaments/:id', tournamentController.deleteTournament);
+router.put('/match-registrations/tournament-complete-update', tournamentController.tournamentCompleteUpdate);
+
+// ✅ FINALIZE route
+router.post("/match-registrations/:tournamentId/finalize", async (req, res) => {
+  try {
+    const { tournamentId } = req.params;
+    const { updates } = req.body;
+
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ success: false, error: "Invalid data format" });
+    }
+
+    const tournament = await Tournament.findById(tournamentId);
+    if (!tournament) return res.status(404).json({ success: false, error: "Tournament not found" });
+
+    const totalCollected = (tournament.totalSlots - tournament.availableSlots) * tournament.entryFee;
+    const totalDistribution = updates.reduce((sum, u) => sum + (u.moneyEarned || 0), 0);
+
+    if (totalDistribution > totalCollected) {
+      return res.status(400).json({ success: false, error: "Distribution exceeds total collected amount" });
+    }
+
+    for (const { username, kills, moneyEarned } of updates) {
+      await MatchRegistration.updateOne(
+        { username, tournamentId },
+        { $set: { kills, moneyEarned } }
+      );
+
+      const user = await User.findOne({ uname: username });
+      // if (user) {
+        // user.winningMoney = (user.winningMoney || 0) + moneyEarned;
+        await user.save();
+
+      //   await Transaction.create({
+      //     username,
+      //     type: 'Winning Amount',
+      //     amount: moneyEarned,
+      //     status: 'Success',
+      //     note: `Winnings from tournament ${tournament.tournamentId}`,
+      //   });
+      // }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Finalize error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+
+// const Tournament = require('../models/Tournament');
+
+router.get('/match2-registrations', async (req, res) => {
+  try {
+    const registrations = await MatchRegistration.find();
     const grouped = {};
 
     for (const reg of registrations) {
-      const tid = reg.tournamentId?._id?.toString();
-
-      // skip if tournament not found or deleted
-      if (!tid || !reg.tournamentId) continue;
-
+      const tid = reg.tournamentId;
       if (!grouped[tid]) {
+        const tournament = await Tournament.findOne({ tournamentId: tid });
         grouped[tid] = {
-          tournament: {
-            dbId: reg.tournamentId._id, // Pass the database ID
-            tournamentId: reg.tournamentId.tournamentId,
-            totalSlots: reg.tournamentId.totalSlots,
-            availableSlots: reg.tournamentId.availableSlots,
-            perKillReward: reg.tournamentId.perKillReward,
-            date: reg.tournamentId.date
-          },
+          tournament,
           players: []
         };
       }
-
-      grouped[tid].players.push({
-        username: reg.username,
-        freefireId: reg.freefireId,
-        kills: reg.kills || 0,
-        moneyEarned: reg.moneyEarned || 0
-      });
+      grouped[tid].players.push(reg);
     }
 
     res.json({ success: true, data: grouped });
   } catch (err) {
-    console.error('🚨 /match-registrations error:', err);
-    res.status(500).json({ success: false, error: 'server-error', message: err.message });
+    console.error(err);
+    res.json({ success: false, error: 'Server error' });
   }
 });
 
-
-
-
-// ✅ Update kills + moneyEarned based on username (admin)
-router.put('/match-registrations/:tournamentId/:username/update', async (req, res) => {
-  const { tournamentId, username } = req.params;
-  const { kills, moneyEarned } = req.body;
-
+// GET /admin/tournaments - Fetch all tournaments (optional sort support)
+router.get('/tournaments2', async (req, res) => {
   try {
-    // ✅ Find tournament by Mongo ID
-    const tournament = await Tournament.findById(tournamentId);
-    if (!tournament) {
-      return res.status(404).json({ success: false, error: 'Tournament not found' });
-    }
+    const sort = req.query.sort === 'asc' ? 1 : -1;
 
-    // ✅ Update match registration
-    const registration = await MatchRegistration.findOneAndUpdate(
-      { tournamentId: tournament._id, username },
-      {
-        $set: {
-          kills: parseInt(kills),
-          moneyEarned: parseFloat(moneyEarned),
-        },
-      },
-      { new: true }
-    );
+    const tournaments = await Tournament.find().sort({ startTime: sort });
 
-    if (!registration) {
-      return res.status(404).json({ success: false, error: 'Match registration not found' });
-    }
-
-    // ✅ Update user's winning balance and log transaction
-    const user = await User.findOne({ uname: username });
-    if (user) {
-      user.winningMoney = (user.winningMoney || 0) + parseFloat(moneyEarned);
-      await user.save();
-
-      await Transaction.create({
-        username,
-        type: 'Winning Amount',
-        amount: parseFloat(moneyEarned),
-        status: 'Success',
-        note: `Winnings from tournament ${tournament.title}`,
-      });
-    }
-
-    res.json({ success: true, data: registration });
+    res.json({ success: true, data: tournaments });
   } catch (err) {
-    console.error('Match update error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('Error fetching tournaments:', err);
+    res.status(500).json({ success: false, error: 'Server error while fetching tournaments' });
   }
 });
 
-
-
-const withdraw = require('../models/withdraw');
-
-router.get('/withdraw', async (req, res) => {
-  try {
-    const requests = await withdraw.find().sort({ createdAt: -1 });
-    res.json({ success: true, data: requests });
-  } catch (err) {
-    console.error("Fetch withdraw requests error:", err);
-    res.status(500).json({ success: false, error: 'Server error' });
-  }
-});
-
-
-router.put('/withdraw/:id', async (req, res) => {
-  const { status } = req.body; // 'Completed' or 'Cancelled'
-  const { id } = req.params;
-
-  try {
-    // 🟡 Validate input
-    if (!['Completed', 'Cancelled'].includes(status)) {
-      return res.status(400).json({ success: false, error: 'Invalid status' });
-    }
-
-    // 🔍 1. Find the withdraw request
-    const request = await withdraw.findById(id);
-    if (!request) {
-      return res.status(404).json({ success: false, error: 'Withdraw request not found' });
-    }
-
-    // 🔍 2. Find and update matching transaction
-    const txn = await Transaction.findOneAndUpdate(
-      {
-        username: request.username,
-        type: 'Withdraw',
-        amount: { $eq: parseFloat(request.amount) }, // Ensure number match
-        status: 'Pending'
-      },
-      { status },
-      { new: true }
-    );
-
-    if (!txn) {
-      console.warn(`❗ No matching transaction for user=${request.username}, amount=₹${request.amount}`);
-      return res.status(404).json({ success: false, error: 'Matching transaction not found' });
-    }
-
-    // 💸 3. If Cancelled, refund the user
-    if (status === 'Cancelled') {
-      const user = await User.findOne({ uname: request.username });
-      if (user) {
-        user.winningMoney = (user.winningMoney || 0) + parseFloat(request.amount);
-        await user.save();
-        console.log(`💸 Refunded ₹${request.amount} to ${user.uname}`);
-      } else {
-        console.warn(`❗ User not found: ${request.username}`);
-        return res.status(404).json({ success: false, error: 'User not found for refund' });
-      }
-    }
-
-    // 🗑️ 4. Remove the withdraw request from DB
-    await withdraw.findByIdAndDelete(id);
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("❌ Withdraw update error:", err);
-    res.status(500).json({ success: false, error: "Failed to update withdraw request" });
-  }
-});
 
 
 module.exports = router;

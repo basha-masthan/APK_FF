@@ -146,10 +146,12 @@ router.post('/logout', (req, res) => {
 router.get('/profile', requireLogin, async (req, res) => {
   try {
     const username = req.session.user?.uname;
-    const user = await User.findOne({ uname: username });
-    res.json({ uname: user.uname, email: user.email });
+    const registered = await MatchRegistration.find({ username }).select('tournamentId');
+    const ids = registered.map(r => r.tournamentId.toString());
+    res.json({ success: true, tournamentIds: ids });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to load profile' });
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Server error' });
   }
 });
 

@@ -90,7 +90,7 @@ app.use('/admin', adminStatsRoutes);
 
 
 const tournamentRoutes = require('./routes/tournament');
-app.use('/tournaments', tournamentRoutes);
+app.use('/games', tournamentRoutes);
 
 app.get('/session-info', (req, res) => {
   if (req.session.user) {

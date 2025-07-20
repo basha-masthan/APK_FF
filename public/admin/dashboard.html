@@ -27,6 +27,10 @@
         <button onclick="showTab('users')" id="tab-users" class="tab-btn flex items-center px-4 py-2 rounded hover:bg-blue-100 transition">
           <i class="fas fa-users mr-2"></i> Users
         </button>
+        <!-- game -->
+         <button onclick="showTab('games')" id="tab-games" class="tab-btn flex items-center px-4 py-2 rounded hover:bg-blue-100 transition">
+          <i class="fas fa-gamepad mr-2"></i> Games
+        </button>
         <button onclick="showTab('tournaments')" id="tab-tournaments" class="tab-btn flex items-center px-4 py-2 rounded hover:bg-blue-100 transition">
           <i class="fas fa-trophy mr-2"></i> Tournaments
         </button>
@@ -69,6 +73,12 @@
       <h3 class="text-xl font-semibold mb-2">👥 Users</h3>
       <p id="userCount" class="text-3xl font-bold text-blue-600">0</p>
     </div>
+    
+     <div class="bg-white p-6 rounded-lg shadow text-center">
+      <h3 class="text-xl font-semibold mb-2">🎮 Games</h3>
+      <p id="gameCount" class="text-3xl font-bold text-indigo-600">0</p>
+    </div>
+
     <div class="bg-white p-6 rounded-lg shadow text-center">
       <h3 class="text-xl font-semibold mb-2">🏆 Tournaments</h3>
       <p id="tournamentCount" class="text-3xl font-bold text-green-600">0</p>
@@ -84,6 +94,22 @@
   </div>
 </section>
 
+<script>
+  async function fetchGameCount() {
+    try {
+      const res = await fetch('/games/AllGames');
+      const games = await res.json();
+
+      const count = Array.isArray(games) ? games.length : 0;
+      document.getElementById('gameCount').textContent = count;
+    } catch (err) {
+      console.error("❌ Error fetching game count:", err);
+      document.getElementById('gameCount').textContent = "Error";
+    }
+  }
+
+  fetchGameCount();
+</script>
 
 
 
@@ -91,7 +117,7 @@
   async function calculateAdminProfit() {
   try {
     const [tournamentsRes, registrationsRes] = await Promise.all([
-      fetch('/tournaments'),
+      fetch('/admin/tournaments'),
       fetch('/admin/match-registrations') // Admin route to get all match registrations
     ]);
 
@@ -180,8 +206,6 @@ calculateAdminProfit();
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance (₹)</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Winnings (₹)</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transactions</th>
-
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200"></tbody>
@@ -233,14 +257,14 @@ tdEye.appendChild(eyeBtn);
           const tdBalance = document.createElement('td');
           const tdWinnings = document.createElement('td');
           const tdAction = document.createElement('td');
-          const tdTransactions = document.createElement('td');
+          
 
           tdUpdated.textContent = new Date(user.updatedAt).toLocaleString();
           tdName.textContent = user.uname;
           tdEmail.textContent = user.email;
           tdBalance.textContent = `₹${user.balance || 0}`;
           tdWinnings.textContent = `₹${user.winningMoney || 0}`;
-          tdTransactions.textContent = 'View Transactions';
+          
 
           tdUpdated.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-500";
           tdName.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-900";
@@ -248,7 +272,7 @@ tdEye.appendChild(eyeBtn);
           tdBalance.className = "px-6 py-4 whitespace-nowrap text-sm text-green-700 font-medium";
           tdWinnings.className = "px-6 py-4 whitespace-nowrap text-sm text-purple-700 font-medium";
           tdAction.className = "px-6 py-4 whitespace-nowrap text-sm font-medium";
-          tdTransactions.className = "px-6 py-4 whitespace-nowrap text-sm font-medium";
+          
 
           // Edit Button
           const editBtn = document.createElement('button');
@@ -311,7 +335,7 @@ tdEye.appendChild(eyeBtn);
                   tdAction.innerHTML = '';
                   tdAction.appendChild(editBtn);
                   tdAction.appendChild(delBtn);
-                  tdTransactions.textContent = 'View Transactions';
+                
                 } else {
                   alert('Error updating user');
                 }
@@ -340,7 +364,7 @@ tdEye.appendChild(eyeBtn);
           tr.appendChild(tdBalance);
           tr.appendChild(tdWinnings);
           tr.appendChild(tdAction);
-          tr.appendChild(tdEye); // 👈 Add this line
+       
 
 
           tbody.appendChild(tr);
@@ -351,6 +375,127 @@ tdEye.appendChild(eyeBtn);
 </section>
 
 
+        <!-- Games -->
+
+<section id="section-games" class="hidden">
+  <div class="p-4">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold text-white">🎮 Game Management</h2>
+      <a href="/admin/create-games.html" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+        ➕ Add Game
+      </a>
+    </div>
+
+    <!-- Games Table -->
+    <div class="overflow-x-auto">
+      <table class="min-w-full table-auto text-white border border-gray-700">
+        <thead class="bg-gray-800 text-sm">
+          <tr>
+            <th class="px-4 py-2 text-left">Game Name</th>
+            <th class="px-4 py-2 text-left">Image URL</th>
+            <th class="px-4 py-2 text-left">Preview</th>
+            <th class="px-4 py-2 text-left">Created At</th>
+            <th class="px-4 py-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="gameTableBody" class="text-sm bg-gray-900"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    async function fetchGames() {
+      try {
+        const res = await fetch('/games/AllGames');
+        const games = await res.json();
+        const tbody = document.getElementById("gameTableBody");
+        tbody.innerHTML = '';
+
+        games.forEach(game => {
+          const row = document.createElement("tr");
+          row.classList.add("border-t", "border-gray-700");
+
+          row.innerHTML = `
+            <td class="px-4 py-2">
+              <input id="name-${game._id}" value="${game.gameName}" class="bg-gray-800 border border-gray-600 px-2 py-1 rounded w-full" />
+            </td>
+
+            <td class="px-4 py-2">
+              <input id="img-${game._id}" value="${game.gameImg}" class="bg-gray-800 border border-gray-600 px-2 py-1 rounded w-full" />
+            </td>
+
+            <td class="px-4 py-2">
+              <img src="${game.gameImg}" alt="${game.gameName}" class="h-10 w-10 object-cover rounded" />
+            </td>
+
+            <td class="px-4 py-2 text-gray-400">
+              ${new Date(game.createdAt).toLocaleDateString()}
+            </td>
+
+            <td class="px-4 py-2 space-x-2">
+              <button onclick="updateGame('${game._id}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">💾 Save</button>
+              <button onclick="deleteGame('${game._id}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">🗑 Delete</button>
+            </td>
+          `;
+
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        console.error("❌ Error loading games:", err);
+        document.getElementById("gameTableBody").innerHTML =
+          `<tr><td colspan="5" class="text-center text-red-500 py-4">Failed to load games.</td></tr>`;
+      }
+    }
+
+    async function updateGame(id) {
+      const name = document.getElementById(`name-${id}`).value.trim();
+      const img = document.getElementById(`img-${id}`).value.trim();
+
+      if (!name || !img) {
+        return alert("❌ Game name and image URL required.");
+      }
+
+      try {
+        const res = await fetch(`/games/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameName: name, gameImg: img })
+        });
+
+        if (res.ok) {
+          alert("✅ Game updated!");
+          fetchGames();
+        } else {
+          alert("❌ Failed to update game.");
+        }
+      } catch (err) {
+        console.error("Update error:", err);
+        alert("❌ Server error during update.");
+      }
+    }
+
+    async function deleteGame(id) {
+      if (!confirm("❗ Are you sure you want to delete this game?")) return;
+
+      try {
+        const res = await fetch(`/games/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          alert("🗑 Game deleted.");
+          fetchGames();
+        } else {
+          alert("❌ Failed to delete game.");
+        }
+      } catch (err) {
+        console.error("Delete error:", err);
+        alert("❌ Server error while deleting.");
+      }
+    }
+
+    fetchGames();
+  </script>
+</section>
 
       <!-- Tournaments -->
 
@@ -371,7 +516,7 @@ tdEye.appendChild(eyeBtn);
 let editingRowId = null;
 
 async function fetchTournaments() {
-  const res = await fetch('/tournaments');
+  const res = await fetch('/admin/tournaments');
   const tournaments = await res.json();
 
   const grouped = {};
@@ -490,7 +635,7 @@ async function saveTournament(id, btn) {
     }
   };
 
-  const res = await fetch(`/tournaments/${id}`, {
+  const res = await fetch(`/admin/tournaments/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -508,7 +653,7 @@ async function saveTournament(id, btn) {
 async function deleteTournament(id) {
   if (!confirm("Are you sure you want to delete this tournament?")) return;
 
-  const res = await fetch(`/tournaments/${id}`, { method: 'DELETE' });
+  const res = await fetch(`/admin/tournaments/${id}`, { method: 'DELETE' });
   if (res.ok) {
     alert("🗑️ Tournament deleted.");
     fetchTournaments();
@@ -523,68 +668,183 @@ fetchTournaments();
 
 <!-- Match Registrations Section -->
 
+<!-- Match Registrations Section -->
+<!-- Match Registrations Section -->
 <section id="section-matches" class="block">
   <h1 class="text-2xl font-bold text-center mb-4">📊 Match Registrations Dashboard</h1>
 
   <!-- 🔍 Filter Section -->
-  <div class="flex justify-end mb-4">
-    <label class="mr-2 text-white text-sm">Sort by:</label>
-    <select id="sortSelect" onchange="fetchRegistrations()" class="bg-gray-800 border border-gray-600 text-white rounded px-2 py-1">
-      <option value="desc">Latest First</option>
-      <option value="asc">Oldest First</option>
-    </select>
+  <div class="flex justify-between items-center mb-4">
+    <div class="flex items-center">
+      <label class="mr-2 text-white text-sm">Sort by:</label>
+      <select id="sortSelect" onchange="fetchRegistrations()" class="bg-gray-800 border border-gray-600 text-white rounded px-2 py-1">
+        <option value="desc">Latest First</option>
+        <option value="asc">Oldest First</option>
+      </select>
+    </div>
+    
+    <!-- ✅ NEW: Global Action Buttons -->
+    <div class="flex items-center space-x-3">
+      <button onclick="updateAllTournaments()" class="bg-blue-600 px-4 py-2 rounded text-white hover:bg-blue-700 font-bold">
+        🚀 Update All Tournaments
+      </button>
+      <button onclick="resetAllChanges()" class="bg-gray-600 px-4 py-2 rounded text-white hover:bg-gray-700">
+        🔄 Reset Changes
+      </button>
+    </div>
+  </div>
+
+  <!-- ✅ NEW: Progress indicator for bulk updates -->
+  <div id="progressContainer" class="hidden mb-4">
+    <div class="bg-gray-700 rounded-full h-4">
+      <div id="progressBar" class="bg-green-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+    </div>
+    <p id="progressText" class="text-sm text-white mt-1 text-center"></p>
   </div>
 
   <div id="dataContainer" class="space-y-6"></div>
 
   <script>
+    // ✅ NEW: Global state to track changes
+    let pendingUpdates = new Map();
+
     async function fetchRegistrations() {
       const sortOrder = document.getElementById('sortSelect').value;
 
       try {
+        console.log('🔄 Fetching registrations...');
         const res = await fetch('/admin/match-registrations');
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
         const json = await res.json();
+        console.log('📦 Full API Response:', json);
 
         if (!json.success) {
-          document.getElementById('dataContainer').innerHTML = '<p class="text-red-400">Error fetching data</p>';
+          console.error('❌ API returned error:', json);
+          document.getElementById('dataContainer').innerHTML = 
+            `<p class="text-red-400">API Error: ${json.error || 'Unknown error'}</p>`;
           return;
         }
 
         const data = json.data;
+        console.log('📊 Tournament count:', Object.keys(data).length);
+        
+        if (Object.keys(data).length === 0) {
+          document.getElementById('dataContainer').innerHTML = 
+            '<p class="text-yellow-400">No tournament data found. Check if tournaments and registrations exist in database.</p>';
+          return;
+        }
+
         const container = document.getElementById('dataContainer');
         container.innerHTML = '';
 
-        // 🧠 Sort tournaments by date
+        // ✅ Reset pending updates when fetching fresh data
+        pendingUpdates.clear();
+
+        // ✅ FIXED: Use startTime with fallback to date
         const sortedTournaments = Object.entries(data).sort((a, b) => {
-          const dateA = new Date(a[1].tournament.date);
-          const dateB = new Date(b[1].tournament.date);
+          const dateA = new Date(a[1].tournament.startTime || a[1].tournament.date);
+          const dateB = new Date(b[1].tournament.startTime || b[1].tournament.date);
           return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
         });
 
-        // 🧱 Render each tournament block
         sortedTournaments.forEach(([tournamentId, group]) => {
-          const reward = group.tournament.perKillReward || 0;
+          const t = group.tournament;
+          const players = group.players;
+
+          const bookedSlots = (t.totalSlots || 0) - (t.availableSlots || 0);
+          
+          // ✅ FIXED: Use startTime for date display
+          const displayDate = new Date(t.startTime || t.date);
+
+          // ✅ NEW: Badge logic
+          const getBadgeHTML = (tournament) => {
+            const status = tournament.status || 'Upcoming';
+            const assignmentBadge = tournament.assignmentBadge || 'none';
+            const assignmentCount = tournament.assignmentCount || 0;
+
+            let statusBadge = '';
+            let assignmentBadgeHTML = '';
+
+            // Status badge
+            switch(status) {
+              case 'Upcoming':
+                statusBadge = '<span class="bg-blue-500 text-white px-2 py-1 rounded text-xs">📅 Upcoming</span>';
+                break;
+              case 'Ongoing':
+                statusBadge = '<span class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">⚡ Ongoing</span>';
+                break;
+              case 'Completed':
+                statusBadge = '<span class="bg-green-500 text-white px-2 py-1 rounded text-xs">✅ Completed</span>';
+                break;
+              default:
+                statusBadge = '<span class="bg-gray-500 text-white px-2 py-1 rounded text-xs">❓ Unknown</span>';
+            }
+
+            // Assignment badge
+            switch(assignmentBadge) {
+              case 'assigned':
+                assignmentBadgeHTML = '<span class="bg-green-600 text-white px-2 py-1 rounded text-xs ml-2">🎯 Assigned Successfully</span>';
+                break;
+              case 'multiple':
+                assignmentBadgeHTML = `<span class="bg-purple-600 text-white px-2 py-1 rounded text-xs ml-2">🔄 Multiple Assignment (${assignmentCount}x)</span>`;
+                break;
+              default:
+                assignmentBadgeHTML = '';
+            }
+
+            return statusBadge + assignmentBadgeHTML;
+          };
 
           const section = document.createElement('div');
           section.className = 'bg-gray-800 p-4 rounded-lg shadow';
 
           section.innerHTML = `
             <div class="flex items-center justify-between mb-2">
-              <h2 class="text-lg font-bold text-blue-400">Tournament ID: ${group.tournament.tournamentId}</h2>
-
-              <label class="text-sm text-green-300 flex items-center">
-                <input type="checkbox" onchange="markTournamentComplete('${tournamentId}')" class="mr-2">
-                Mark as Completed
-              </label>
+              <div class="flex items-center space-x-3">
+                <h2 class="text-lg font-bold text-blue-400">
+                  Tournament ID: ${t.tournamentId}
+                </h2>
+                <div class="flex items-center">
+                  ${getBadgeHTML(t)}
+                </div>
+              </div>
+              <div class="flex items-center space-x-3">
+                <span class="text-sm text-yellow-400">
+                  🗓️ ${displayDate.toLocaleDateString()} - ${displayDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <!-- ✅ UPDATED: Tournament update button with status change -->
+                <button onclick="updateSingleTournament('${tournamentId}')" 
+                        class="bg-orange-600 px-3 py-1 rounded text-white hover:bg-orange-700 text-sm transition-colors">
+                  ${t.status === 'Completed' ? '🔄 Re-assign' : '🎯 Complete & Assign'}
+                </button>
+              </div>
             </div>
 
-            <p class="text-sm text-white mb-2">
-  Total Slots: ${group.tournament.totalSlots} |
-  Available: ${group.tournament.availableSlots} |
-  Per Kill Reward: ₹${reward} |
-  Date: ${group.tournament.date ? new Date(group.tournament.date).toLocaleDateString() : 'N/A'}
-</p>
+            <p class="text-sm text-white mb-1">
+              🧮 Total Slots: <span class="text-green-400">${t.totalSlots}</span> |
+              Booked: <span class="text-yellow-300">${bookedSlots}</span> |
+              Available: <span class="text-red-400">${t.availableSlots}</span>
+            </p>
 
+            <p class="text-sm text-white mb-3">
+              💰 Entry Fee: ₹${t.entryFee} |
+              🎯 Per Kill Reward: ₹${t.perKillReward} |
+              🏆 Prize Money: ₹${t.prizeMoney}
+            </p>
+
+            <!-- ✅ NEW: Assignment Info -->
+            ${t.assignmentCount > 0 ? `
+              <div class="bg-gray-700 p-2 rounded mb-3">
+                <p class="text-sm text-gray-300">
+                  📊 Assignment Count: <span class="text-yellow-400">${t.assignmentCount}</span> |
+                  Last Assigned: <span class="text-blue-400">${t.lastAssignedAt ? new Date(t.lastAssignedAt).toLocaleString() : 'Never'}</span>
+                </p>
+              </div>
+            ` : ''}
 
             <div class="overflow-x-auto">
               <table class="table-auto w-full text-white text-left border border-gray-700">
@@ -594,21 +854,22 @@ fetchTournaments();
                     <th class="p-2">FreeFire ID</th>
                     <th class="p-2">Kills</th>
                     <th class="p-2">Money Earned</th>
-                    <th class="p-2">Actions</th>
+                    <th class="p-2">Status</th>
                   </tr>
                 </thead>
                 <tbody class="text-sm">
-                  ${group.players.map(player => `
-                    <tr class="border-t border-gray-700">
-                      <td class="p-2">${player.username}</td>
-                      <td class="p-2">${player.freefireId}</td>
+                  ${players.map(player => `
+                    <tr class="border-t border-gray-700" id="row-${tournamentId}-${player.username}">
+                      <td class="p-2 font-medium">${player.username}</td>
+                      <td class="p-2 text-gray-300">${player.freefireId}</td>
                       <td class="p-2">
                         <input
                           id="kills-${tournamentId}-${player.username}"
                           type="number"
                           min="0"
                           value="${player.kills || 0}"
-                          class="bg-gray-900 border border-gray-600 text-white rounded px-2 py-1 w-20"
+                          onchange="trackChange('${tournamentId}', '${player.username}', 'kills', this.value)"
+                          class="bg-gray-900 border border-gray-600 text-white rounded px-2 py-1 w-20 transition-colors"
                         />
                       </td>
                       <td class="p-2">
@@ -617,11 +878,14 @@ fetchTournaments();
                           type="number"
                           min="0"
                           value="${player.moneyEarned || 0}"
-                          class="bg-gray-900 border border-gray-600 text-white rounded px-2 py-1 w-24"
+                          onchange="trackChange('${tournamentId}', '${player.username}', 'money', this.value)"
+                          class="bg-gray-900 border border-gray-600 text-white rounded px-2 py-1 w-24 transition-colors"
                         />
                       </td>
                       <td class="p-2">
-                        <button onclick="updateMatch('${player.username}', '${tournamentId}')" class="bg-green-600 px-3 py-1 rounded text-white hover:bg-green-700">Update</button>
+                        <span id="status-${tournamentId}-${player.username}" class="text-gray-400 text-xs">
+                          No changes
+                        </span>
                       </td>
                     </tr>
                   `).join('')}
@@ -632,52 +896,177 @@ fetchTournaments();
 
           container.appendChild(section);
         });
+        
+        console.log(`✅ Successfully rendered ${sortedTournaments.length} tournaments`);
       } catch (err) {
-        console.error(err);
-        document.getElementById('dataContainer').innerHTML = '<p class="text-red-400">Server error</p>';
+        console.error('🚨 Network/Parse Error:', err);
+        document.getElementById('dataContainer').innerHTML = 
+          `<p class="text-red-400">Error: ${err.message}</p>`;
       }
     }
 
-    async function updateMatch(username, tournamentId) {
-      const killsInput = document.getElementById(`kills-${tournamentId}-${username}`);
-      const moneyInput = document.getElementById(`money-${tournamentId}-${username}`);
-
-      const kills = parseInt(killsInput.value);
-      const money = parseInt(moneyInput.value);
-
-      if (isNaN(kills) || kills < 0 || isNaN(money) || money < 0) {
-        return alert('❌ Please enter valid numeric values for kills and money.');
+    // ✅ NEW: Track individual field changes
+    function trackChange(tournamentId, username, field, value) {
+      const key = `${tournamentId}-${username}`;
+      
+      if (!pendingUpdates.has(key)) {
+        pendingUpdates.set(key, {
+          tournamentId,
+          username,
+          kills: parseInt(document.getElementById(`kills-${tournamentId}-${username}`).value) || 0,
+          moneyEarned: parseFloat(document.getElementById(`money-${tournamentId}-${username}`).value) || 0
+        });
+      } else {
+        const existing = pendingUpdates.get(key);
+        if (field === 'kills') {
+          existing.kills = parseInt(value) || 0;
+        } else if (field === 'money') {
+          existing.moneyEarned = parseFloat(value) || 0;
+        }
       }
 
+      // Update visual indicator
+      const statusElement = document.getElementById(`status-${tournamentId}-${username}`);
+      const rowElement = document.getElementById(`row-${tournamentId}-${username}`);
+      
+      statusElement.textContent = 'Modified';
+      statusElement.className = 'text-yellow-400 text-xs font-medium';
+      rowElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+
+      console.log(`📝 Tracked change: ${username} in ${tournamentId}`, pendingUpdates.get(key));
+    }
+
+    // ✅ NEW: Update all tournaments at once
+    async function updateAllTournaments() {
+      if (pendingUpdates.size === 0) {
+        alert('⚠️ No changes to update. Modify some player stats first.');
+        return;
+      }
+
+      const confirmed = confirm(`🚀 Update ${pendingUpdates.size} player records across all tournaments?`);
+      if (!confirmed) return;
+
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+
+      progressContainer.classList.remove('hidden');
+      
       try {
-        const res = await fetch(`/admin/match-registrations/${tournamentId}/${username}/update`, {
+        const updates = Array.from(pendingUpdates.values());
+        console.log('🚀 Sending bulk updates:', updates);
+
+        progressText.textContent = `Updating ${updates.length} players...`;
+        progressBar.style.width = '10%';
+
+        const res = await fetch('/admin/match-registrations/bulk-update', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ kills, moneyEarned: money })
+          body: JSON.stringify({ updates })
+        });
+
+        progressBar.style.width = '70%';
+        
+        const json = await res.json();
+        console.log('📦 Bulk update response:', json);
+
+        progressBar.style.width = '100%';
+        
+        if (json.success) {
+          progressText.textContent = `✅ Successfully updated ${json.updatedCount} players!`;
+          
+          // Clear pending updates and refresh display
+          pendingUpdates.clear();
+          
+          setTimeout(() => {
+            progressContainer.classList.add('hidden');
+            fetchRegistrations();
+            alert(`🎉 Bulk update completed! Updated ${json.updatedCount} players across ${json.tournamentsAffected} tournaments.`);
+          }, 2000);
+        } else {
+          progressText.textContent = '❌ Update failed';
+          alert(`❌ Bulk update failed: ${json.error}`);
+          progressContainer.classList.add('hidden');
+        }
+      } catch (err) {
+        console.error('🚨 Bulk update error:', err);
+        progressText.textContent = '❌ Network error';
+        alert('❌ Network error during bulk update.');
+        setTimeout(() => progressContainer.classList.add('hidden'), 3000);
+      }
+    }
+
+    // ✅ UPDATED: Update single tournament with status change and badge assignment
+    async function updateSingleTournament(tournamentId) {
+      const tournamentUpdates = Array.from(pendingUpdates.values())
+        .filter(update => update.tournamentId === tournamentId);
+
+      if (tournamentUpdates.length === 0) {
+        alert('⚠️ No changes for this tournament. Modify some player stats first.');
+        return;
+      }
+
+      const confirmed = confirm(`🎯 Update ${tournamentUpdates.length} players and complete this tournament?`);
+      if (!confirmed) return;
+
+      try {
+        console.log('🚀 Updating single tournament with status change...');
+        
+        const res = await fetch('/admin/match-registrations/tournament-complete-update', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            tournamentId,
+            updates: tournamentUpdates 
+          })
         });
 
         const json = await res.json();
+        console.log('📦 Tournament complete response:', json);
+        
         if (json.success) {
-          alert(`✅ Updated ${username} in ${tournamentId} successfully.`);
+          // Remove updated items from pending updates
+          tournamentUpdates.forEach(update => {
+            pendingUpdates.delete(`${update.tournamentId}-${update.username}`);
+          });
+          
+          fetchRegistrations();
+          alert(`✅ Tournament completed successfully!\n🎯 ${json.badgeMessage}\n📊 Updated ${json.updatedCount} players`);
         } else {
-          alert('❌ Failed to update match registration.');
-          console.error(json.error);
+          alert(`❌ Tournament completion failed: ${json.error}`);
         }
       } catch (err) {
-        console.error(err);
-        alert('❌ Server error while updating match data.');
+        console.error('🚨 Tournament completion error:', err);
+        alert('❌ Server error during tournament completion.');
       }
     }
 
-    // 🧩 Mark Tournament as Completed (just placeholder for now)
-    function markTournamentComplete(tournamentId) {
-      alert(`✔️ Tournament ${tournamentId} marked as completed (future action can be added here)`);
-      // TODO: You can POST to /admin/tournament/${id}/complete
+    // ✅ NEW: Reset all changes
+    function resetAllChanges() {
+      if (pendingUpdates.size === 0) {
+        alert('⚠️ No changes to reset.');
+        return;
+      }
+
+      const confirmed = confirm(`🔄 Reset ${pendingUpdates.size} pending changes?`);
+      if (!confirmed) return;
+
+      pendingUpdates.clear();
+      fetchRegistrations();
+      alert('✅ All changes have been reset.');
     }
 
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      fetchRegistrations();
+    });
+
+    // Also call it immediately for backward compatibility
     fetchRegistrations();
   </script>
 </section>
+
+
 
 
       <!-- Withdraw requests -->
@@ -757,123 +1146,133 @@ fetchWithdrawRequests();
 </script>
 
 
-      <!-- payment requests -->
-       
+      
+
+
+
+
 
 
   <!-- transaction history -->
 <!-- Transaction Control Section -->
 
 <section id="section-transaction" class="hidden">
-  <div class="p-4">
-    <h2 class="text-2xl font-semibold mb-4">💸 User Wallet Summary</h2>
-    
-    <table class="w-full text-left border rounded-xl shadow">
-      <thead>
-        <tr class="bg-gray-100">
-          <th class="p-2 border">User</th>
-          <th class="p-2 border">Matches Registered</th>
-          <th class="p-2 border">Deposited</th>
-          <th class="p-2 border">Winnings</th>
-          <th class="p-2 border">Action</th>
-        </tr>
-      </thead>
-      <tbody id="walletSummaryTable">
-        <tr><td colspan="5" class="text-center p-4">Loading...</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-center">👥 Users & Wallet Transactions</h1>
 
-  <!-- 🔍 Modal Popup -->
-  <div id="txnModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative">
-      <button onclick="closeTxnModal()" class="absolute top-2 right-4 text-xl font-bold">×</button>
-      <h2 class="text-xl font-semibold mb-4" id="txnModalTitle">Transactions</h2>
-      <table class="w-full text-left border">
-        <thead class="bg-gray-100">
+    <!-- 🔍 Search Bar -->
+    <div class="mb-4 flex justify-end">
+      <input type="text" id="searchInput" placeholder="Search by username..." 
+             class="border px-4 py-2 rounded shadow w-64 focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div id="userTable" class="bg-white rounded shadow p-4 overflow-x-auto">
+      <table class="min-w-full table-auto border">
+        <thead class="bg-gray-200">
           <tr>
-            <th class="p-2 border">Type</th>
-            <th class="p-2 border">Amount</th>
-            <th class="p-2 border">Status</th>
-            <th class="p-2 border">Date</th>
+            <th class="px-4 py-2">Username</th>
+            <th class="px-4 py-2">Email</th>
+            <th class="px-4 py-2">Action</th>
           </tr>
         </thead>
-        <tbody id="txnModalTable">
-          <tr><td colspan="4" class="text-center p-4">Loading...</td></tr>
-        </tbody>
+        <tbody id="userList"></tbody>
       </table>
     </div>
   </div>
 
-<script>
-async function loadWalletSummaries() {
-  try {
-    const res = await fetch('/wallet/transactions');
-    const data = await res.json();
-    const table = document.getElementById('walletSummaryTable');
-    table.innerHTML = '';
 
-    if (data.length === 0) {
-      table.innerHTML = `<tr><td colspan="5" class="text-center p-4">No users found.</td></tr>`;
-      return;
+
+
+  <!-- Transactions Modal -->
+  <div id="transactionModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+    <div class="bg-white p-6 rounded shadow-lg w-full max-w-2xl">
+      <h2 class="text-xl font-bold mb-4">💳 Transactions for <span id="modalUsername"></span></h2>
+      <div id="transactionList" class="space-y-3 max-h-[400px] overflow-y-auto"></div>
+      <div class="text-right mt-4">
+        <button onclick="closeModal()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const usersAPI = "/users/";
+    const transactionsAPI = (username) => `/wallet/transactions/${username}`;
+
+    let allUsers = [];
+
+    // Fetch and display all users
+    fetch(usersAPI)
+      .then(res => res.json())
+      .then(users => {
+        allUsers = users;
+        displayUsers(users);
+      });
+
+    function displayUsers(users) {
+      const tbody = document.getElementById("userList");
+      tbody.innerHTML = "";
+
+      users.forEach(user => {
+        tbody.innerHTML += `
+          <tr class="border-b">
+            <td class="px-4 py-2">${user.uname}</td>
+            <td class="px-4 py-2">${user.email}</td>
+            <td class="px-4 py-2">
+              <button onclick="showTransactions('${user.uname}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">Show Transactions</button>
+            </td>
+          </tr>
+        `;
+      });
     }
 
-    data.forEach(user => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td class="p-2 border">${user.username}</td>
-        <td class="p-2 border">${user.matches || 0}</td>
-        <td class="p-2 border">₹${user.deposited || 0}</td>
-        <td class="p-2 border">₹${user.winnings || 0}</td>
-        <td class="p-2 border">
-          <button class="text-blue-600 hover:underline" onclick="showTxnModal('${user.username}')">View</button>
-        </td>
-      `;
-      table.appendChild(row);
+    // Filter logic
+    document.getElementById("searchInput").addEventListener("input", function () {
+      const keyword = this.value.toLowerCase();
+      const filtered = allUsers.filter(user => user.uname.toLowerCase().includes(keyword));
+      displayUsers(filtered);
     });
-  } catch (err) {
-    console.error(err);
-    document.getElementById('walletSummaryTable').innerHTML = `<tr><td colspan="5" class="text-center text-red-600">Error loading summary</td></tr>`;
-  }
-}
 
-async function showTxnModal(username) {
-  document.getElementById('txnModal').classList.remove('hidden');
-  document.getElementById('txnModalTitle').textContent = `Transactions for ${username}`;
+    function showTransactions(username) {
+      document.getElementById("modalUsername").innerText = username;
+      document.getElementById("transactionModal").classList.remove("hidden");
 
-  try {
-    const res = await fetch(`/wallet/transactions/${username}`);
-    const data = await res.json();
-    const modalTable = document.getElementById('txnModalTable');
-    modalTable.innerHTML = '';
+      fetch(transactionsAPI(username))
+        .then(res => res.json())
+        .then(data => {
+          const list = document.getElementById("transactionList");
+          list.innerHTML = "";
+          if (data.length === 0) {
+            list.innerHTML = `<p class="text-gray-500">No transactions found.</p>`;
+            return;
+          }
 
-    if (data.length === 0) {
-      modalTable.innerHTML = `<tr><td colspan="4" class="text-center p-4">No transactions found.</td></tr>`;
-      return;
+          data.forEach(txn => {
+            const color = txn.type === 'Deposit' ? 'text-green-600' :
+                          txn.type === 'Withdraw' ? 'text-red-600' : 'text-yellow-600';
+            const statusColor = txn.status === 'Success' ? 'bg-green-100 text-green-800' :
+                                txn.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800';
+
+            list.innerHTML += `
+              <div class="border p-3 rounded shadow-sm">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <p class="font-bold ${color}">${txn.type} - ₹${txn.amount}</p>
+                    <p class="text-sm text-gray-600">${new Date(txn.date).toLocaleString()}</p>
+                    ${txn.note ? `<p class="text-sm italic text-gray-700">Note: ${txn.note}</p>` : ""}
+                  </div>
+                  <span class="px-3 py-1 rounded-full text-sm font-semibold ${statusColor}">${txn.status}</span>
+                </div>
+              </div>
+            `;
+          });
+        });
     }
 
-    data.reverse().forEach(txn => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td class="p-2 border">${txn.type}</td>
-        <td class="p-2 border">₹${txn.amount}</td>
-        <td class="p-2 border">${txn.status}</td>
-        <td class="p-2 border">${new Date(txn.createdAt).toLocaleString()}</td>
-      `;
-      modalTable.appendChild(row);
-    });
-  } catch (err) {
-    console.error(err);
-    document.getElementById('txnModalTable').innerHTML = `<tr><td colspan="4" class="text-center text-red-600">Error loading transactions</td></tr>`;
-  }
-}
-
-function closeTxnModal() {
-  document.getElementById('txnModal').classList.add('hidden');
-}
-
-document.getElementById('tab-transaction').addEventListener('click', loadWalletSummaries);
-</script>
+    function closeModal() {
+      document.getElementById("transactionModal").classList.add("hidden");
+    }
+  </script>
 </section>
 
 
@@ -882,7 +1281,7 @@ document.getElementById('tab-transaction').addEventListener('click', loadWalletS
 
 <script>
 function showTab(tab, username = null) {
-  const tabs = ['home', 'users', 'tournaments', 'matches', 'money', 'transaction',];
+  const tabs = ['home', 'users','games' ,'tournaments', 'matches', 'money', 'transaction',];
 
   tabs.forEach(t => {
     document.getElementById(`section-${t}`).classList.add('hidden');
@@ -902,49 +1301,6 @@ function showTab(tab, username = null) {
 
   // Default tab
   showTab('home');
-</script>
-
-<script>
-  async function loadUserTransactions(username) {
-    try {
-      const res = await fetch(`/wallet/transactions/${username}`);
-      const data = await res.json();
-      const container = document.getElementById('payments-container');
-      container.innerHTML = '';
-
-      if (data.length === 0) {
-        container.innerHTML = `<p>No transactions found for ${username}.</p>`;
-        return;
-      }
-
-      const table = document.createElement('table');
-      table.className = 'w-full text-left border rounded-xl shadow';
-      table.innerHTML = `
-        <thead>
-          <tr class="bg-gray-100">
-            <th class="p-2 border">Type</th>
-            <th class="p-2 border">Amount</th>
-            <th class="p-2 border">Status</th>
-            <th class="p-2 border">Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.map(txn => `
-            <tr>
-              <td class="p-2 border">${txn.type}</td>
-              <td class="p-2 border">₹${txn.amount}</td>
-              <td class="p-2 border">${txn.status}</td>
-              <td class="p-2 border">${new Date(txn.createdAt).toLocaleString()}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      `;
-      container.appendChild(table);
-    } catch (err) {
-      console.error(err);
-      document.getElementById('payments-container').innerHTML = `<p class="text-red-600">Error loading transactions for ${username}</p>`;
-    }
-  }
 </script>
 
 

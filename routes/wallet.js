@@ -105,7 +105,7 @@ router.get('/balance', requireLogin, async (req, res) => {
   }
 });
 
-router.get('/transactions',  async (req, res) => {
+router.get('/transactions', requireLogin, async (req, res) => {
   const username = req.session.user.uname;
 
   try {
@@ -116,9 +116,10 @@ router.get('/transactions',  async (req, res) => {
   }
 });
 
-router.get('/transactions/:username',  async (req, res) => {
-  const { username } = req.params;
 
+
+router.get('/transactions/:username', async (req, res) => {
+  const { username } = req.params;
   try {
     const transactions = await Transaction.find({ username }).sort({ createdAt: -1 });
     res.json(transactions);
@@ -126,6 +127,7 @@ router.get('/transactions/:username',  async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch transactions' });
   }
 });
+
 
 router.get('/balance/total', requireLogin, async (req, res) => {
   const username = req.session.user?.uname;

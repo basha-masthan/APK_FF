@@ -6,6 +6,11 @@ const tournamentSchema = new mongoose.Schema({
     unique: true,
     required: true
   },
+  mvp: {
+    username: { type: String },
+    moneyEarned: { type: Number },
+    kills: { type: Number },
+  },
 
   game: {
     name: {
@@ -58,12 +63,68 @@ const tournamentSchema = new mongoose.Schema({
     enum: ['Upcoming', 'Ongoing', 'Completed'],
     default: 'Upcoming'
   },
-  room:{
+
+  room: {
     id: { type: String },
     password: { type: String },
-  }
+  },
+
+  // ✅ NEW: Badge and assignment tracking fields
+  assignmentBadge: {
+    type: String,
+    enum: ['none', 'assigned', 'multiple'],
+    default: 'none'
+  },
+
+  assignmentCount: {
+    type: Number,
+    default: 0
+  },
+
+  lastAssignedAt: {
+    type: Date
+  },
+
+  assignmentHistory: [{
+    assignedAt: {
+      type: Date,
+      default: Date.now
+    },
+    playersUpdated: {
+      type: Number,
+      default: 0
+    },
+    assignedBy: {
+      type: String, // Admin username if available
+      default: 'System'
+    }
+  }]
 
 }, { timestamps: true });
+
+// ✅ NEW: Methods for badge management
+tournamentSchema.methods.updateAssignmentBadge = function() {
+  this.assignmentCount += 1;
+  this.lastAssignedAt = new Date();
+  
+  if (this.assignmentCount === 1) {
+    this.assignmentBadge = 'assigned';
+  } else if (this.assignmentCount > 1) {
+    this.assignmentBadge = 'multiple';
+  }
+  
+  return this;
+};
+
+tournamentSchema.methods.addAssignmentHistory = function(playersUpdated, assignedBy = 'System') {
+  this.assignmentHistory.push({
+    assignedAt: new Date(),
+    playersUpdated,
+    assignedBy
+  });
+  
+  return this;
+};
 
 // Safe model declaration to avoid OverwriteModelError in dev
 const Tournament = mongoose.models.Tournament || mongoose.model('Tournament', tournamentSchema);

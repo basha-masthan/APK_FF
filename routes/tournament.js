@@ -3,7 +3,7 @@ const router = express.Router();
 const Tournament = require('../models/Tournament');
 const Game = require('../models/games');
 const requireLogin = require('../middleware/requireLogin');
-const tournamentController = require('../controllers/tournamentController');
+// const tournamentController = require('../controllers/tournamentController');
 
 
 
@@ -40,104 +40,32 @@ router.get('/AllGames',  async (req, res) => {
   }
 });
 
-
-
-// get tournaments
-// GET /tournaments?game=Free%20Fire
-router.get('/',  async (req, res) => {
-  const { game } = req.query;
-
-  try {
-    let query = {};
-    if (game) {
-      query['game.name'] = game; // 👈 nested field
-    }
-
-    const tournaments = await Tournament.find(query);
-    res.json(tournaments);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch tournaments' });
-  }
-});
-
-
-
-function generate6DigitId() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-// Ensures uniqueness of tournamentId
-
-async function generateUniqueTournamentId() {
-  let unique = false;
-  let id;
-
-  while (!unique) {
-    id = generate6DigitId();
-    const existing = await Tournament.findOne({ tournamentId: id });
-    if (!existing) unique = true;
-  }
-
-  return id;
-}
-
-router.post('/create', async (req, res) => {
-  const {
-    gameName,     // e.g. "Free Fire"
-    gameLogo,     // e.g. "/images/freefire.png"
-    gameMode,     // e.g. "Solo", "Duo", "Squad"
-    mapName,      // 🆕 New field
-    totalSlots,
-    availableSlots,
-    entryFee,
-    perKillReward,
-    prizeMoney,
-    startTime     // ISO 8601 string or valid Date
-  } = req.body;
-
-  try {
-    const tournamentId = await generateUniqueTournamentId();
-
-    const newTournament = new Tournament({
-      tournamentId,
-      game: {
-        name: gameName,
-        logo: gameLogo,
-        mode: gameMode
-      },
-      mapName, // 🆕 Include map name
-      entryFee: parseInt(entryFee),
-      perKillReward: parseInt(perKillReward),
-      prizeMoney: parseInt(prizeMoney),
-      totalSlots: parseInt(totalSlots),
-      availableSlots: parseInt(availableSlots),
-      startTime: new Date(startTime),
-      status: 'Upcoming'
-    });
- 
-    await newTournament.save();
-    res.redirect('/admin/dashboard.html');
-  } catch (err) {
-    res.status(400).send(
-      `<h2 style="color:red;text-align:center;">❌ Error: ${err.message}</h2><a href="/tournaments/create">Try again</a>`
-    );
-  }
-});
-
-
+// PATCH /games/:id - update game
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
-  const updates = req.body;
-  await Tournament.findByIdAndUpdate(id, updates);
-  res.sendStatus(200);
+  const { gameName, gameImg } = req.body;
+  try {
+    await Game.findByIdAndUpdate(id, { gameName, gameImg });
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("Game update error:", err);
+    res.status(500).json({ success: false });
+  }
 });
 
-// Delete tournament
+// DELETE /games/:id - delete game
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
-  await Tournament.findByIdAndDelete(id);
-  res.sendStatus(200);
+  try {
+    await Game.findByIdAndDelete(id);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("Game delete error:", err);
+    res.status(500).json({ success: false });
+  }
 });
+
+
 
 
 module.exports = router;

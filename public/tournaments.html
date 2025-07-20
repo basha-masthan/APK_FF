@@ -170,10 +170,20 @@
 }
 
 
-   async function fetchTournaments() {
+async function fetchTournaments() {
   try {
-    const res = await fetch("/users/tournaments"); // adjust your API route as needed
-    const tournaments = await res.json();
+    const [tRes, regRes] = await Promise.all([
+      fetch("/users/tournaments"),
+      fetch("/Match/my-matches")
+    ]);
+
+    const tournaments = await tRes.json();
+    const regData = await regRes.json();
+
+    // ✅ Get only tournamentIds where booking is true
+    const registeredIds = regData
+      .filter(r => r.booking === true)
+      .map(r => r.tournamentId);
 
     const filtered = tournaments.filter(t => {
       const matchesGame = !selectedGame || t.game.name.toLowerCase() === selectedGame.toLowerCase();
@@ -184,70 +194,136 @@
     const container = document.getElementById("tournamentContainer");
     container.innerHTML = "";
 
-    if (filtered.length === 0) {
-      container.innerHTML = `<p class="text-center col-span-2 text-gray-600">No tournaments found${selectedGame ? ` for "${selectedGame}"` : ""}</p>`;
-      return;
-    }
-
     filtered.forEach(t => {
       const isFull = t.availableSlots === 0;
       const isStarted = new Date(t.startTime).getTime() <= Date.now();
+      const isRegistered = registeredIds.includes(t._id); // ✅ now based on booking === true
 
-      const card = document.createElement("div");
-      card.className = "bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition";
+      const buttonLabel = isFull
+        ? 'Bookings Closed'
+        : isStarted
+        ? 'Started'
+        : isRegistered
+        ? '✅ Booked for Tournament'
+        : 'Book Tournament';
 
-      card.innerHTML = `
-        <div class="w-full h-40 bg-gray-200">
-          <img src="${t.game.logo || '/default-game.png'}" alt="${t.mapName} banner" class="w-full h-full object-cover" />
-        </div>
+      const isDisabled = isFull || isStarted || isRegistered;
 
-        <div class="p-4 space-y-2">
-          <div class="flex flex-wrap justify-between items-center">
-            <h2 class="text-lg font-bold text-gray-800">${t.mapName}</h2>
-            <p class="text-sm text-gray-600">Available Slots: ${t.availableSlots}</p>
-            <span class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">${t.game.mode}</span>
-          </div>
+     const startDate = new Date(t.startTime);
+const formattedTime = startDate.toLocaleTimeString('en-IN', {
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true
+});
 
-          <div class="grid grid-cols-3 gap-2 text-sm text-gray-700 font-medium">
-            <div class="bg-gray-100 rounded p-2 text-center">
-              <p class="text-xs text-gray-500">Entry Fee</p>
-              <p>₹${t.entryFee}</p>
-            </div>
-            <div class="bg-gray-100 rounded p-2 text-center">
-              <p class="text-xs text-gray-500">Per Kill</p>
-              <p>₹${t.perKillReward}</p>
-            </div>
-            <div class="bg-gray-100 rounded p-2 text-center">
-              <p class="text-xs text-gray-500">Prize</p>
-              <p>₹${t.prizeMoney}</p>
-            </div>
-          </div>
+const formattedDate = startDate.toLocaleDateString('en-IN', {
+  weekday: 'long',   // e.g., "Friday"
+  day: 'numeric',    // e.g., "19"
+  month: 'long'      // e.g., "July"
+});
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
-            <p><strong>Status:</strong> <span class="font-semibold text-blue-600">${t.status}</span></p>
-            <p><strong>Starts In:</strong> <span class="countdown text-red-600 font-semibold" data-start="${t.startTime}"></span></p>
-          </div>
+const formattedStart = `${formattedDate} · ${formattedTime}`;
 
-          <button onclick="bookNow('${t._id}', ${t.entryFee})"
-            class="${isFull || isStarted ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white py-2 px-4 w-full rounded shadow transition"
-            ${isFull || isStarted ? 'disabled' : ''}>
-            ${isFull ? 'Bookings Closed' : isStarted ? 'Started' : 'Book Tournament'}
-          </button>
-        </div>
-      `;
+
+      const badgeHTML = isRegistered
+  ? `<span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow">✅ Booked</span>`
+  : "";
+
+const card = document.createElement("div");
+card.className = "relative bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition";
+
+card.innerHTML = `
+  ${badgeHTML}
+
+  <div class="w-full h-40 bg-gray-200">
+    <img src="${t.game.logo || '/default-game.png'}" class="w-full h-full object-cover" />
+  </div>
+
+  <div class="p-4 space-y-2">
+    <div class="flex flex-wrap justify-between items-center">
+      <h2 class="text-lg font-bold text-gray-800">${t.mapName}</h2>
+      <p class="text-sm text-gray-600">Available Slots: ${t.availableSlots}</p>
+      <span class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">${t.game.mode}</span>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2 text-sm text-gray-700 font-medium">
+      <div class="bg-gray-100 rounded p-2 text-center">
+        <p class="text-xs text-gray-500">Entry Fee</p>
+        <p>₹${t.entryFee}</p>
+      </div>
+      <div class="bg-gray-100 rounded p-2 text-center">
+        <p class="text-xs text-gray-500">Per Kill</p>
+        <p>₹${t.perKillReward}</p>
+      </div>
+      <div class="bg-gray-100 rounded p-2 text-center">
+        <p class="text-xs text-gray-500">Prize</p>
+        <p>₹${t.prizeMoney}</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+      <p><strong>Status:</strong> <span class="font-semibold text-blue-600">${t.status}</span></p>
+      <p><strong>Start Time:</strong> <span class="text-red-600 font-semibold">${formattedStart}</span></p>
+
+    </div>
+
+    <button 
+      onclick="bookNow('${t._id}', ${t.entryFee}, this)"
+      class="${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white py-2 px-4 w-full rounded shadow transition"
+      ${isDisabled ? 'disabled' : ''}>
+      ${buttonLabel}
+    </button>
+  </div>
+`;
+
 
       container.appendChild(card);
     });
 
+  } catch (err) {
+    console.error("Error fetching tournaments:", err);
+  }
+}
 
-        updateCountdowns();
-        setInterval(updateCountdowns, 1000);
-      } catch (err) {
-        console.error("Error fetching tournaments:", err);
-      }
+async function bookNow(tournamentId, entryFee, buttonElement) {
+  const freefireId = prompt("Enter your Free Fire ID:");
+  if (!freefireId || freefireId.length < 5) {
+    alert("❌ Invalid Free Fire ID");
+    return;
+  }
+
+  const confirmed = confirm(`Confirm registration? Entry Fee: ₹${entryFee}`);
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch('/Match/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tournamentId, freefireId })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      alert("✅ Registered successfully!");
+
+      // ✅ Instantly update the clicked button
+      buttonElement.innerText = "✅ Booked for Tournament";
+      buttonElement.disabled = true;
+      buttonElement.classList.remove("bg-green-600", "hover:bg-green-700");
+      buttonElement.classList.add("bg-gray-400", "cursor-not-allowed");
+    } else {
+      alert("❌ Booking failed: " + (data.error || "Unknown error"));
     }
+  } catch (err) {
+    console.error("❌ Booking error:", err);
+    alert("❌ Server error. Try again later.");
+  }
+}
 
-    function updateCountdowns() {
+
+
+ function updateCountdowns() {
       const now = new Date().getTime();
       document.querySelectorAll('.countdown').forEach(el => {
         const startTime = new Date(el.dataset.start).getTime();
@@ -269,41 +345,53 @@
 
     fetchTournaments();
 
-    async function bookNow(tournamentId, entryFee) {
-  const freefireId = prompt("Enter your Free Fire User ID:");
+
+document.getElementById('confirmBookingBtn').addEventListener('click', async () => {
+  const freefireId = document.getElementById('modalFreefireId').value.trim();
+  const accepted = document.getElementById('modalAcceptTerms').checked;
+
   if (!freefireId || freefireId.length < 5) {
-    alert("❌ Invalid Free Fire ID");
+    alert("❌ Please enter a valid Free Fire ID");
     return;
   }
 
-  const confirmed = confirm(`Confirm registration? Entry Fee: ₹${entryFee}`);
-  if (!confirmed) return;
+  if (!accepted) {
+    alert("❌ Please accept the terms and conditions");
+    return;
+  }
 
   try {
     const res = await fetch('/Match/book', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ tournamentId, freefireId })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tournamentId: selectedTournamentId, freefireId })
     });
 
     const data = await res.json();
-    console.log("Booking response:", data);
 
     if (data.success) {
-      alert("✅ Registration successful!");
-      location.reload();
+      alert("✅ Registered successfully!");
+
+      if (selectedButton) {
+        selectedButton.innerText = "✅ Booked for Tournament";
+        selectedButton.disabled = true;
+        selectedButton.classList.remove("bg-green-600", "hover:bg-green-700");
+        selectedButton.classList.add("bg-gray-400", "cursor-not-allowed");
+      }
+
+      closeModal();
     } else {
-      alert("❌ Booking failed: " + (data.error || "Unknown error"));
+      alert("❌ Booking failed: " + data.error);
     }
   } catch (err) {
-    alert("❌ Error contacting server. Try again later.");
     console.error(err);
+    alert("❌ Server error");
   }
-}
+});
 
 
   </script>
+
+
 </body>
 </html>

@@ -67,7 +67,7 @@
 
   <script>
 
-    fetch('/users/AllGames')
+    fetch('/games/AllGames')
   .then(res => {
     if (res.status === 401) {
       window.location.href = '/login.html';
@@ -85,7 +85,7 @@
       gameList.innerHTML = '<p class="text-center text-gray-400 col-span-full">Loading games...</p>';
 
       try {
-        const res = await fetch('/tournaments/AllGames'); // Adjust this route based on your actual API endpoint
+        const res = await fetch('/games/AllGames'); // Adjust this route based on your actual API endpoint
         
         const games = await res.json();
 
