@@ -64,9 +64,9 @@ const userRoutes = require('./routes/userRoutes');
 app.use('/users',  userRoutes);
 
 app.post('/users/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { uname, password } = req.body;
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ uname });
   if (!user || user.password !== password) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }

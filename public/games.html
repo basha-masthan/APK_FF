@@ -17,45 +17,33 @@
 </head>
 <body class="bg-gray-950 text-white min-h-screen py-10 px-4">
 
-    <header class=" flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 px-4">
- 
+  <header class=" flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 px-4">
+    <!-- User Dropdown -->
+    <div class="relative w-full md:w-auto z-50">
+      <button id="userMenuBtn" class="w-full md:w-auto inline-flex justify-between items-center bg-gray-800 text-white px-4 py-2 rounded-md shadow-md hover:bg-gray-700 transition duration-300 text-sm font-medium">
+        <span id="usernameDisplay">User</span>
+        <svg class="ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+      </button>
 
-
-
-  <!-- User Dropdown -->
-  <div class="relative w-full md:w-auto z-50">
-    <button id="userMenuBtn" class="w-full md:w-auto inline-flex justify-between items-center bg-gray-800 text-white px-4 py-2 rounded-md shadow-md hover:bg-gray-700 transition duration-300 text-sm font-medium">
-      <span id="usernameDisplay">User</span>
-      <svg class="ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-      </svg>
-    </button>
-
-    <div id="userDropdown" class="hidden absolute right-0 mt-2 w-full md:w-52 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 text-sm text-gray-700 animate-fade-in-down">
-      <a href="/user/edit-profile.html" class="block px-4 py-2 hover:bg-gray-100">📝 Edit Profile</a>
-   
-      <a href="/wallet.html" class="block px-4 py-2 hover:bg-gray-100">💰 My Wallet</a>
-      <a href="/Games/results.html" class="block px-4 py-2 hover:bg-gray-100">📊 My Results</a>
-
-      <a href="/user/my-matches.html" class="block px-4 py-2 hover:bg-gray-100">🎟️ My Matches</a>
-      <a href="/user/support.html" class="block px-4 py-2 hover:bg-gray-100">📞 Contact Support</a>
-      <form action="/users/logout" method="POST">
-        <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">🚪 Logout</button>
-      </form>
+      <div id="userDropdown" class="hidden absolute right-0 mt-2 w-full md:w-52 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 text-sm text-gray-700 animate-fade-in-down">
+        <a href="/user/edit-profile.html" class="block px-4 py-2 hover:bg-gray-100">📝 Edit Profile</a>
+        <a href="/wallet.html" class="block px-4 py-2 hover:bg-gray-100">💰 My Wallet</a>
+        <a href="/Games/results.html" class="block px-4 py-2 hover:bg-gray-100">📊 My Results</a>
+        <a href="/user/my-matches.html" class="block px-4 py-2 hover:bg-gray-100">🎟️ My Matches</a>
+        <a href="/user/support.html" class="block px-4 py-2 hover:bg-gray-100">📞 Contact Support</a>
+        <form action="/users/logout" method="POST">
+          <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">🚪 Logout</button>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <!-- two buttons in dev tag side by side
-   name as "show balance" & another one is "watch & earn" -->
-
+    <!-- Balance Display -->
     <div class="w-full md:w-auto inline-flex justify-between items-center bg-gray-800 text-white px-4 py-2 rounded-md shadow-md hover:bg-gray-700 transition duration-300 text-sm font-medium">
       <button onclick="navigatetowallet();"><h2 id="totalHeading" class="text-l font-bold text-green-400 p-1">Total Balance: ₹0</h2></button>
     </div>
-
-
-    
   </header>
-
 
   <h1 class="text-4xl font-bold text-center text-yellow-400 mb-8">🎮 Choose Your Game</h1>
 
@@ -64,15 +52,77 @@
   </div>
 
   <script>
-
-    fetch('/games/mygames')
-  .then(res => {
-    if (res.status === 401) {
-      window.location.href = '/login.html';
+    // ✅ DISABLE BACK/FORWARD NAVIGATION - START
+    
+    // Method 1: History manipulation to prevent back navigation
+    function disableBackNavigation() {
+      // Add a dummy state to history
+      history.pushState(null, null, location.href);
+      
+      // Listen for popstate (back/forward button press)
+      window.addEventListener('popstate', function(event) {
+        // Push the current state again to prevent navigation
+        history.pushState(null, null, location.href);
+        
+        // Optional: Show a message to user
+        console.log('Navigation blocked - you cannot go back from this page');
+      });
     }
-    return res.json();
-  })
-  
+
+    // Method 2: Prevent browser shortcuts for navigation
+    document.addEventListener('keydown', function(event) {
+      // Disable Alt + Left Arrow (back)
+      if (event.altKey && event.keyCode === 37) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+      
+      // Disable Alt + Right Arrow (forward)  
+      if (event.altKey && event.keyCode === 39) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+      
+      // Disable Backspace key navigation (when not in input fields)
+      if (event.keyCode === 8 && !['INPUT', 'TEXTAREA'].includes(event.target.tagName)) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+    });
+
+    // Method 3: Warning before leaving page (optional)
+    window.addEventListener('beforeunload', function(event) {
+      // This will show a confirmation dialog when trying to leave
+      const message = 'Are you sure you want to leave this page?';
+      event.returnValue = message; // For older browsers
+      return message; // For modern browsers
+    });
+
+    // Method 4: Disable right-click context menu (prevents back/forward from context menu)
+    document.addEventListener('contextmenu', function(event) {
+      event.preventDefault();
+      return false;
+    });
+
+    // Initialize navigation blocking when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      disableBackNavigation();
+      console.log('✅ Browser navigation has been disabled for this page');
+    });
+
+    // ✅ DISABLE BACK/FORWARD NAVIGATION - END
+
+    // Original functionality
+    fetch('/games/mygames')
+      .then(res => {
+        if (res.status === 401) {
+          window.location.href = '/login.html';
+        }
+        return res.json();
+      })
 
     // Extract username from URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -83,8 +133,7 @@
       gameList.innerHTML = '<p class="text-center text-gray-400 col-span-full">Loading games...</p>';
 
       try {
-        const res = await fetch('/games/AllGames'); // Adjust this route based on your actual API endpoint
-        
+        const res = await fetch('/games/AllGames');
         const games = await res.json();
 
         if (!Array.isArray(games) || games.length === 0) {
@@ -97,10 +146,13 @@
           const card = document.createElement('div');
           card.className = "bg-gray-900 rounded-2xl overflow-hidden shadow-lg hover:shadow-yellow-400/30 transform hover:scale-105 transition duration-300 cursor-pointer pop-in";
 
-        card.onclick = () => {
-          const encodedGame = encodeURIComponent(game.gameName);
-          window.location.href = `/tournaments.html?game=${encodedGame}`;
-        };
+          card.onclick = () => {
+            // Remove beforeunload listener before navigation to prevent warning
+            window.removeEventListener('beforeunload', arguments.callee);
+            
+            const encodedGame = encodeURIComponent(game.gameName);
+            window.location.href = `/tournaments.html?game=${encodedGame}`;
+          };
 
           card.innerHTML = `
             <img src="${game.gameImg}" alt="${game.gameName}" class="w-full h-44 object-cover">
@@ -119,92 +171,79 @@
 
     loadGames();
 
+    async function loadTotalBalance() {
+      try {
+        const res = await fetch('/wallet/balance/total');
+        const data = await res.json();
 
- async function loadTotalBalance() {
-    try {
-      const res = await fetch('/wallet/balance/total');
-      const data = await res.json();
-
-      if (data.error) {
-        document.getElementById('totalHeading').textContent = "❌ " + data.error;
-        
-      } else {
-        document.getElementById('totalHeading').textContent = `Total Balance: ₹${data.total}`;
-        
-      }
-    } catch (err) {
-      document.getElementById('totalHeading').textContent = "❌ Failed to load balance";
-      
-    }
-  }
-
-  // Call on page load
-  loadTotalBalance();
-
-
-  </script>
-
-</body>
-</html>
-<script>
-  const userBtn = document.getElementById("userMenuBtn");
-  const dropdown = document.getElementById("userDropdown");
-
-  // Toggle dropdown on button click
-  userBtn.addEventListener("click", (e) => {
-    e.stopPropagation(); // Prevent the document click from firing
-    dropdown.classList.toggle("hidden");
-  });
-
-  // Hide dropdown on click outside
-  document.addEventListener("click", (e) => {
-    if (!dropdown.classList.contains("hidden")) {
-      if (!dropdown.contains(e.target) && !userBtn.contains(e.target)) {
-        dropdown.classList.add("hidden");
+        if (data.error) {
+          document.getElementById('totalHeading').textContent = "❌ " + data.error;
+        } else {
+          document.getElementById('totalHeading').textContent = `Total Balance: ₹${data.total}`;
+        }
+      } catch (err) {
+        document.getElementById('totalHeading').textContent = "❌ Failed to load balance";
       }
     }
-  });
 
-  // Hide dropdown on scroll
-  window.addEventListener("scroll", () => {
-    if (!dropdown.classList.contains("hidden")) {
-      dropdown.classList.add("hidden");
-    }
-  });
+    // Call on page load
+    loadTotalBalance();
 
-  // Optional: Escape key to close
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !dropdown.classList.contains("hidden")) {
-      dropdown.classList.add("hidden");
-    }
-  });
+    // User dropdown functionality
+    const userBtn = document.getElementById("userMenuBtn");
+    const dropdown = document.getElementById("userDropdown");
 
-  // Fetch logged in username
-  fetch('/session-info')
-    .then(res => res.json())
-    .then(data => {
-      if (data.uname) {
-        document.getElementById('usernameDisplay').textContent = data.uname;
+    // Toggle dropdown on button click
+    userBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle("hidden");
+    });
+
+    // Hide dropdown on click outside
+    document.addEventListener("click", (e) => {
+      if (!dropdown.classList.contains("hidden")) {
+        if (!dropdown.contains(e.target) && !userBtn.contains(e.target)) {
+          dropdown.classList.add("hidden");
+        }
       }
     });
+
+    // Hide dropdown on scroll
+    window.addEventListener("scroll", () => {
+      if (!dropdown.classList.contains("hidden")) {
+        dropdown.classList.add("hidden");
+      }
+    });
+
+    // Optional: Escape key to close
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !dropdown.classList.contains("hidden")) {
+        dropdown.classList.add("hidden");
+      }
+    });
+
+    // Fetch logged in username
+    fetch('/session-info')
+      .then(res => res.json())
+      .then(data => {
+        if (data.uname) {
+          document.getElementById('usernameDisplay').textContent = data.uname;
+        }
+      });
+
     function navigatetowallet() {
+      // Remove beforeunload listener before navigation
+      window.removeEventListener('beforeunload', arguments.callee);
       window.location.href = '/wallet.html';
     }
 
     function watchEarn() {
+      // Remove beforeunload listener before navigation
+      window.removeEventListener('beforeunload', arguments.callee);
       window.location.href = '/user/watch&earn.html';
     }
 
-
-document.addEventListener('keydown', function(event) {
-  // Disable Alt + Left/Right Arrow keys
-  if (event.altKey && (event.keyCode === 37 || event.keyCode === 39)) {
-    event.preventDefault();
-    return false;
-  }
-});
-
- function disableBackNavigation() {
+    function disableBackNavigation() {
   history.pushState(null, null, location.href);
   
   window.addEventListener('popstate', function(event) {
@@ -212,5 +251,7 @@ document.addEventListener('keydown', function(event) {
   });
 }
 
+  </script>
 
-</script>
+</body>
+</html>
