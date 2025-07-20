@@ -8,432 +8,433 @@
 </head>
 <body class="bg-gray-950 text-white min-h-screen py-10 px-4">
 
-  <header class="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 px-4">
-  <div id="notificationBanner" class="hidden fixed top-0 left-0 right-0 bg-blue-600 text-white p-3 text-center z-50">
-    <span>🔔 Enable notifications to get tournament updates!</span>
-    <button onclick="requestNotificationPermission()" class="ml-4 bg-white text-blue-600 px-3 py-1 rounded text-sm">
-      Enable
-    </button>
-    <button onclick="hideNotificationBanner()" class="ml-2 opacity-70 hover:opacity-100">×</button>
-  </div>
- <script type="module" src="./js/firebase-config.js"></script>
-  <script>
-    // Check notification permission
-    function checkNotificationPermission() {
-      if ('Notification' in window && Notification.permission === 'default') {
-        document.getElementById('notificationBanner').classList.remove('hidden');
-      }
-    }
+  <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 px-4">
+    <!-- User Dropdown -->
+    <div class="relative w-full md:w-auto z-50">
+      <button id="userMenuBtn" class="w-full md:w-auto inline-flex justify-between items-center bg-gray-800 text-white px-4 py-2 rounded-md shadow-md hover:bg-gray-700 transition duration-300 text-sm font-medium">
+        <span id="usernameDisplay">User</span>
+        <svg class="ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+      </button>
 
-    async function requestNotificationPermission() {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        hideNotificationBanner();
-        window.initializeFCM();
-      }
-    }
-
-    function hideNotificationBanner() {
-      document.getElementById('notificationBanner').classList.add('hidden');
-    }
-
-    // Test notification function
-    async function testNotification() {
-      try {
-        const response = await fetch('/notifications/test', { method: 'POST' });
-        const result = await response.json();
-        console.log('Test result:', result);
-      } catch (error) {
-        console.error('Test error:', error);
-      }
-    }
-
-    // Check permission on load
-    document.addEventListener('DOMContentLoaded', checkNotificationPermission);
-
-    // Your existing tournament scripts...
-  </script>
-
-
-  <!-- User Dropdown -->
-  <div class="relative w-full md:w-auto z-50">
-    <button id="userMenuBtn" class="w-full md:w-auto inline-flex justify-between items-center bg-gray-800 text-white px-4 py-2 rounded-md shadow-md hover:bg-gray-700 transition duration-300 text-sm font-medium">
-      <span id="usernameDisplay">User</span>
-      <svg class="ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-      </svg>
-    </button>
-
-    <div id="userDropdown" class="hidden absolute right-0 mt-2 w-full md:w-52 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 text-sm text-gray-700 animate-fade-in-down">
-      <a href="/user/edit-profile.html" class="block px-4 py-2 hover:bg-gray-100">📝 Edit Profile</a>
-   
-      <a href="/wallet.html" class="block px-4 py-2 hover:bg-gray-100">💰 My Wallet</a>
-      <a href="/Games/results.html" class="block px-4 py-2 hover:bg-gray-100">📊 My Results</a>
-
-      <a href="/user/my-matches.html" class="block px-4 py-2 hover:bg-gray-100">🎟️ My Matches</a>
-      <a href="/user/support.html" class="block px-4 py-2 hover:bg-gray-100">📞 Contact Support</a>
-      <form action="/users/logout" method="POST">
-        <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">🚪 Logout</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- two buttons in dev tag side by side
-   name as "show balance" & another one is "watch & earn" -->
-
-  <div class="flex gap-4">  
-      <div class="flex gap-4">  
-    <div class="bg-gray-800 p-4 rounded-lg shadow-lg max-w-md mx-auto text-white text-center">
-      <button onclick="navigatetowallet();"><h2 id="totalHeading" class="text-l font-bold text-green-400">Total Balance: ₹0</h2></button>
+      <div id="userDropdown" class="hidden absolute right-0 mt-2 w-full md:w-52 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 text-sm text-gray-700 animate-fade-in-down">
+        <a href="/user/edit-profile.html" class="block px-4 py-2 hover:bg-gray-100">📝 Edit Profile</a>
+        <a href="/wallet.html" class="block px-4 py-2 hover:bg-gray-100">💰 My Wallet</a>
+        <a href="/Games/results.html" class="block px-4 py-2 hover:bg-gray-100">📊 My Results</a>
+        <a href="/user/my-matches.html" class="block px-4 py-2 hover:bg-gray-100">🎟️ My Matches</a>
+        <a href="/user/support.html" class="block px-4 py-2 hover:bg-gray-100">📞 Contact Support</a>
+        <form action="/users/logout" method="POST">
+          <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">🚪 Logout</button>
+        </form>
+      </div>
     </div>
 
-    
-    <!-- <button id="watchEarnBtn" onclick="watchEarn();" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
-      📺 Watch & Earn
-    </button> -->
-
-    
+    <!-- Balance Display -->
+    <div class="flex gap-4">  
+      <div class="bg-gray-800 p-4 rounded-lg shadow-lg max-w-md mx-auto text-white text-center">
+        <button onclick="navigateToWallet();"><h2 id="totalHeading" class="text-l font-bold text-green-400">Total Balance: ₹0</h2></button>
+      </div>
+    </div>
   </header>
+
   <h2 id="gameTitle" class="text-2xl font-bold text-gray-100 mb-4 text-center"></h2>
 
-
-
-  <!-- <header class="bg-black text-white p-4 text-center text-2xl font-bold">
-    Game Tournaments
-  </header> -->
-
   <main class="max-w-5xl mx-auto p-4">
-    <div id="tournamentContainer" class=" grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+    <div id="tournamentContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
       <!-- Tournament cards go here -->
     </div>
   </main>
 
-
-      <script>
-
- async function loadTotalBalance() {
-    try {
-      const res = await fetch('/wallet/balance/total');
-      const data = await res.json();
-
-      if (data.error) {
-        document.getElementById('totalHeading').textContent = "❌ " + data.error;
-        
-      } else {
-        document.getElementById('totalHeading').textContent = `Total Balance: ₹${data.total}`;
-        
-      }
-    } catch (err) {
-      document.getElementById('totalHeading').textContent = "❌ Failed to load balance";
+  <!-- Instructions Modal (First Step) -->
+  <div id="instructionsModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-900 rounded-xl px-6 py-8 shadow-lg w-full max-w-lg border border-blue-700 max-h-[90vh] overflow-y-auto">
+      <h2 class="text-2xl font-bold mb-4 text-center text-blue-400">🎯 Match Instructions</h2>
       
-    }
-  }
+      <div class="text-gray-200 text-sm space-y-3 mb-6">
+        <div class="bg-gray-800 p-4 rounded-lg">
+          <h3 class="text-yellow-400 font-bold mb-2">📋 General Rules:</h3>
+          <ul class="space-y-1 text-xs">
+            <li>• Be online 15 minutes before match start time</li>
+            <li>• Use only your registered Free Fire ID</li>
+            <li>• No cheating, hacking, or third-party tools allowed</li>
+            <li>• Follow Fair Play guidelines at all times</li>
+          </ul>
+        </div>
 
-  // Call on page load
-  loadTotalBalance();
+        <div class="bg-gray-800 p-4 rounded-lg">
+          <h3 class="text-green-400 font-bold mb-2">🎮 Gameplay Instructions:</h3>
+          <ul class="space-y-1 text-xs">
+            <li>• Room ID and Password will be shared 10 minutes before start</li>
+            <li>• Join the custom room using provided credentials</li>
+            <li>• Wait for match coordinator's signal to start</li>
+            <li>• Play until the last circle - no early exits allowed</li>
+          </ul>
+        </div>
 
+        <div class="bg-gray-800 p-4 rounded-lg">
+          <h3 class="text-purple-400 font-bold mb-2">🏆 Prize Distribution:</h3>
+          <ul class="space-y-1 text-xs">
+            <li>• Prizes based on kills and final position</li>
+            <li>• Screenshots required for kill confirmation</li>
+            <li>• Winnings will be credited within 24 hours</li>
+            <li>• Disputes must be raised within 2 hours of match end</li>
+          </ul>
+        </div>
 
-  const userBtn = document.getElementById("userMenuBtn");
-  const dropdown = document.getElementById("userDropdown");
+        <div class="bg-red-900 p-4 rounded-lg border border-red-600">
+          <h3 class="text-red-300 font-bold mb-2">⚠️ Important Notes:</h3>
+          <ul class="space-y-1 text-xs">
+            <li>• Entry fees are non-refundable once match starts</li>
+            <li>• Late joiners will be disqualified</li>
+            <li>• Admin decisions are final</li>
+            <li>• Violation of rules may result in account suspension</li>
+          </ul>
+        </div>
+      </div>
 
-  // Toggle dropdown on button click
-  userBtn.addEventListener("click", (e) => {
-    e.stopPropagation(); // Prevent the document click from firing
-    dropdown.classList.toggle("hidden");
-  });
+      <div class="flex gap-4 justify-center">
+        <button onclick="closeInstructionsModal()" class="px-5 py-2 rounded bg-gray-700 hover:bg-gray-800 text-white">Cancel</button>
+        <button onclick="proceedToBooking()" class="px-6 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white font-bold">Continue to Booking</button>
+      </div>
+    </div>
+  </div>
 
-  // Hide dropdown on click outside
-  document.addEventListener("click", (e) => {
-    if (!dropdown.classList.contains("hidden")) {
-      if (!dropdown.contains(e.target) && !userBtn.contains(e.target)) {
-        dropdown.classList.add("hidden");
-      }
-    }
-  });
-
-  // Hide dropdown on scroll
-  window.addEventListener("scroll", () => {
-    if (!dropdown.classList.contains("hidden")) {
-      dropdown.classList.add("hidden");
-    }
-  });
-
-  // Optional: Escape key to close
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !dropdown.classList.contains("hidden")) {
-      dropdown.classList.add("hidden");
-    }
-  });
-
-  // Fetch logged in username
-  fetch('/session-info')
-    .then(res => res.json())
-    .then(data => {
-      if (data.uname) {
-        document.getElementById('usernameDisplay').textContent = data.uname;
-      }
-    });
-</script>
+  <!-- Booking Confirmation Modal (Second Step) -->
+  <div id="bookingModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-900 rounded-xl px-6 py-8 shadow-lg w-full max-w-md border border-green-700">
+      <h2 class="text-2xl font-bold mb-4 text-center text-green-400">Confirm Your Booking</h2>
+      <p class="text-gray-200 mb-6 text-sm text-center">
+        Please confirm your participation and accept the rules before proceeding.
+      </p>
+      <input id="modalFreefireId" type="text" minlength="5"
+        class="mb-4 w-full px-4 py-2 rounded border focus:outline-none focus:ring bg-gray-800 border-green-700 text-white text-center"
+        placeholder="Enter your Free Fire ID" />
+      <div class="flex items-center gap-2 mb-8 justify-center">
+        <input type="checkbox" id="acceptTerms" class="form-checkbox h-5 w-5 text-green-600">
+        <label for="acceptTerms" class="text-white text-sm">I have read the instructions and accept all terms.</label>
+      </div>
+      <div class="flex gap-4 justify-center">
+        <button onclick="backToInstructions()" class="px-5 py-2 rounded bg-gray-700 hover:bg-gray-800 text-white">Back</button>
+        <button id="confirmBookingBtn" class="px-5 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-bold" disabled>Accept & Continue</button>
+      </div>
+    </div>
+  </div>
 
   <script>
-     fetch('users/tournaments')
-  .then(res => {
-    if (res.status === 401) {
-      window.location.href = '/login.html';
-    }
-    return res.json();
-  })
+    // Global variables for modal state
+    let selectedTournamentId = null;
+    let selectedButton = null;
+    let selectedEntryFee = 0;
 
-    function navigatetowallet() {
+    // Load total balance
+    async function loadTotalBalance() {
+      try {
+        const res = await fetch('/wallet/balance/total');
+        const data = await res.json();
+        if (data.error) {
+          document.getElementById('totalHeading').textContent = "❌ " + data.error;
+        } else {
+          document.getElementById('totalHeading').textContent = `Total Balance: ₹${data.total}`;
+        }
+      } catch (err) {
+        document.getElementById('totalHeading').textContent = "❌ Failed to load balance";
+      }
+    }
+
+    // User dropdown functionality
+    const userBtn = document.getElementById("userMenuBtn");
+    const dropdown = document.getElementById("userDropdown");
+
+    userBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle("hidden");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!dropdown.classList.contains("hidden")) {
+        if (!dropdown.contains(e.target) && !userBtn.contains(e.target)) {
+          dropdown.classList.add("hidden");
+        }
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !dropdown.classList.contains("hidden")) {
+        dropdown.classList.add("hidden");
+      }
+    });
+
+    // Fetch logged in username
+    fetch('/session-info')
+      .then(res => res.json())
+      .then(data => {
+        if (data.uname) {
+          document.getElementById('usernameDisplay').textContent = data.uname;
+        }
+      });
+
+    // Navigation functions
+    function navigateToWallet() {
       window.location.href = '/wallet.html';
     }
 
-    function watchEarn() {
-      window.location.href = '/user/watch&earn.html';
-    }
-
-    function showTab(tab) {
-      const tabs = ['freefire', 'pubg'];
-      tabs.forEach(t => {
-        document.getElementById(`tab-${t}`).classList.add('hidden');
-        document.getElementById(`btn-${t}`).classList.remove('active-tab');
-      });
-
-      document.getElementById(`tab-${tab}`).classList.remove('hidden');
-      document.getElementById(`tab-${tab}`).classList.add('fade-in');
-      document.getElementById(`btn-${tab}`).classList.add('active-tab');
-    }
-
+    // Get game from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const selectedGame = urlParams.get("game");
     if (selectedGame) {
-  const title = selectedGame.charAt(0).toUpperCase() + selectedGame.slice(1) + " Tournaments";
-  document.getElementById("gameTitle").innerText = title;
-}
-
-
-async function fetchTournaments() {
-  try {
-    const [tRes, regRes] = await Promise.all([
-      fetch("/users/tournaments"),
-      fetch("/Match/my-matches")
-    ]);
-
-    const tournaments = await tRes.json();
-    const regData = await regRes.json();
-
-    // ✅ Get only tournamentIds where booking is true
-    const registeredIds = regData
-      .filter(r => r.booking === true)
-      .map(r => r.tournamentId);
-
-    const filtered = tournaments.filter(t => {
-      const matchesGame = !selectedGame || t.game.name.toLowerCase() === selectedGame.toLowerCase();
-      const isNotCompleted = t.status !== 'Completed';
-      return matchesGame && isNotCompleted;
-    });
-
-    const container = document.getElementById("tournamentContainer");
-    container.innerHTML = "";
-
-    filtered.forEach(t => {
-      const isFull = t.availableSlots === 0;
-      const isStarted = new Date(t.startTime).getTime() <= Date.now();
-      const isRegistered = registeredIds.includes(t._id); // ✅ now based on booking === true
-
-      const buttonLabel = isFull
-        ? 'Bookings Closed'
-        : isStarted
-        ? 'Started'
-        : isRegistered
-        ? '✅ Booked for Tournament'
-        : 'Book Tournament';
-
-      const isDisabled = isFull || isStarted || isRegistered;
-
-     const startDate = new Date(t.startTime);
-const formattedTime = startDate.toLocaleTimeString('en-IN', {
-  hour: 'numeric',
-  minute: '2-digit',
-  hour12: true
-});
-
-const formattedDate = startDate.toLocaleDateString('en-IN', {
-  weekday: 'long',   // e.g., "Friday"
-  day: 'numeric',    // e.g., "19"
-  month: 'long'      // e.g., "July"
-});
-
-const formattedStart = `${formattedDate} · ${formattedTime}`;
-
-
-      const badgeHTML = isRegistered
-  ? `<span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow">✅ Booked</span>`
-  : "";
-
-const card = document.createElement("div");
-card.className = "relative bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition";
-
-card.innerHTML = `
-  ${badgeHTML}
-
-  <div class="w-full h-40 bg-gray-200">
-    <img src="${t.game.logo || '/default-game.png'}" class="w-full h-full object-cover" />
-  </div>
-
-  <div class="p-4 space-y-2">
-    <div class="flex flex-wrap justify-between items-center">
-      <h2 class="text-lg font-bold text-gray-800">${t.mapName}</h2>
-      <p class="text-sm text-gray-600">Available Slots: ${t.availableSlots}</p>
-      <span class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">${t.game.mode}</span>
-    </div>
-
-    <div class="grid grid-cols-3 gap-2 text-sm text-gray-700 font-medium">
-      <div class="bg-gray-100 rounded p-2 text-center">
-        <p class="text-xs text-gray-500">Entry Fee</p>
-        <p>₹${t.entryFee}</p>
-      </div>
-      <div class="bg-gray-100 rounded p-2 text-center">
-        <p class="text-xs text-gray-500">Per Kill</p>
-        <p>₹${t.perKillReward}</p>
-      </div>
-      <div class="bg-gray-100 rounded p-2 text-center">
-        <p class="text-xs text-gray-500">Prize</p>
-        <p>₹${t.prizeMoney}</p>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
-      <p><strong>Status:</strong> <span class="font-semibold text-blue-600">${t.status}</span></p>
-      <p><strong>Start Time:</strong> <span class="text-red-600 font-semibold">${formattedStart}</span></p>
-
-    </div>
-
-    <button 
-      onclick="bookNow('${t._id}', ${t.entryFee}, this)"
-      class="${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white py-2 px-4 w-full rounded shadow transition"
-      ${isDisabled ? 'disabled' : ''}>
-      ${buttonLabel}
-    </button>
-  </div>
-`;
-
-
-      container.appendChild(card);
-    });
-
-  } catch (err) {
-    console.error("Error fetching tournaments:", err);
-  }
-}
-
-async function bookNow(tournamentId, entryFee, buttonElement) {
-  const freefireId = prompt("Enter your Free Fire ID:");
-  if (!freefireId || freefireId.length < 5) {
-    alert("❌ Invalid Free Fire ID");
-    return;
-  }
-
-  const confirmed = confirm(`Confirm registration? Entry Fee: ₹${entryFee}`);
-  if (!confirmed) return;
-
-  try {
-    const res = await fetch('/Match/book', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tournamentId, freefireId })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      alert("✅ Registered successfully!");
-
-      // ✅ Instantly update the clicked button
-      buttonElement.innerText = "✅ Booked for Tournament";
-      buttonElement.disabled = true;
-      buttonElement.classList.remove("bg-green-600", "hover:bg-green-700");
-      buttonElement.classList.add("bg-gray-400", "cursor-not-allowed");
-    } else {
-      alert("❌ Booking failed: " + (data.error || "Unknown error"));
-    }
-  } catch (err) {
-    console.error("❌ Booking error:", err);
-    alert("❌ Server error. Try again later.");
-  }
-}
-
-
-
- function updateCountdowns() {
-      const now = new Date().getTime();
-      document.querySelectorAll('.countdown').forEach(el => {
-        const startTime = new Date(el.dataset.start).getTime();
-        const diff = startTime - now;
-
-        if (diff <= 0) {
-          el.textContent = "Started";
-          el.classList.replace('text-red-600', 'text-green-600');
-          return;
-        }
-
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-        el.textContent = `${hours}h ${minutes}m ${seconds}s`;
-      });
+      const title = selectedGame.charAt(0).toUpperCase() + selectedGame.slice(1) + " Tournaments";
+      document.getElementById("gameTitle").innerText = title;
     }
 
-    fetchTournaments();
+    // Modal Functions
+    
+    // Step 1: Show Instructions Modal (FIRST)
+    function showInstructionsModal(tournamentId, buttonElement, entryFee) {
+      console.log("🔍 Opening instructions modal for tournament:", tournamentId);
+      selectedTournamentId = tournamentId;
+      selectedButton = buttonElement;
+      selectedEntryFee = entryFee;
+      
+      // Hide booking modal if open
+      document.getElementById('bookingModal').classList.add('hidden');
+      // Show instructions modal
+      document.getElementById('instructionsModal').classList.remove('hidden');
+    }
 
+    function closeInstructionsModal() {
+      selectedTournamentId = null;
+      selectedButton = null;
+      selectedEntryFee = 0;
+      document.getElementById('instructionsModal').classList.add('hidden');
+    }
 
-document.getElementById('confirmBookingBtn').addEventListener('click', async () => {
-  const freefireId = document.getElementById('modalFreefireId').value.trim();
-  const accepted = document.getElementById('modalAcceptTerms').checked;
+    // Step 2: Proceed to Booking Modal (SECOND)
+    function proceedToBooking() {
+      console.log("📋 Proceeding to booking modal");
+      document.getElementById('instructionsModal').classList.add('hidden');
+      
+      // Reset booking modal fields
+      document.getElementById('acceptTerms').checked = false;
+      document.getElementById('modalFreefireId').value = "";
+      document.getElementById('confirmBookingBtn').disabled = true;
+      
+      document.getElementById('bookingModal').classList.remove('hidden');
+    }
 
-  if (!freefireId || freefireId.length < 5) {
-    alert("❌ Please enter a valid Free Fire ID");
-    return;
-  }
+    function backToInstructions() {
+      document.getElementById('bookingModal').classList.add('hidden');
+      document.getElementById('instructionsModal').classList.remove('hidden');
+    }
 
-  if (!accepted) {
-    alert("❌ Please accept the terms and conditions");
-    return;
-  }
+    function closeBookingModal() {
+      selectedTournamentId = null;
+      selectedButton = null;
+      selectedEntryFee = 0;
+      document.getElementById('bookingModal').classList.add('hidden');
+    }
 
-  try {
-    const res = await fetch('/Match/book', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tournamentId: selectedTournamentId, freefireId })
+    // Enable booking button only when terms are accepted
+    document.getElementById('acceptTerms').addEventListener('change', function() {
+      document.getElementById('confirmBookingBtn').disabled = !this.checked;
     });
 
-    const data = await res.json();
-
-    if (data.success) {
-      alert("✅ Registered successfully!");
-
-      if (selectedButton) {
-        selectedButton.innerText = "✅ Booked for Tournament";
-        selectedButton.disabled = true;
-        selectedButton.classList.remove("bg-green-600", "hover:bg-green-700");
-        selectedButton.classList.add("bg-gray-400", "cursor-not-allowed");
+    // Step 3: Final Booking Confirmation (THIRD)
+    document.getElementById('confirmBookingBtn').addEventListener('click', async () => {
+      const freefireId = document.getElementById('modalFreefireId').value.trim();
+      
+      if (!freefireId || freefireId.length < 5) {
+        alert("❌ Please enter a valid Free Fire ID (min 5 chars)");
+        return;
+      }
+      
+      if (!document.getElementById('acceptTerms').checked) {
+        alert("❌ You must accept the terms and conditions!");
+        return;
       }
 
-      closeModal();
-    } else {
-      alert("❌ Booking failed: " + data.error);
-    }
-  } catch (err) {
-    console.error(err);
-    alert("❌ Server error");
-  }
-});
+      // Optional entry fee confirmation
+      if (selectedEntryFee > 0 && !confirm(`Entry Fee: ₹${selectedEntryFee}\nProceed and deduct from your wallet?`)) {
+        return;
+      }
 
+      try {
+        console.log("🚀 Submitting booking request...");
+        const res = await fetch('/Match/book', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tournamentId: selectedTournamentId,
+            freefireId: freefireId
+          })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          alert("✅ Tournament booking successful! Check your registered matches for room details.");
+          
+          if (selectedButton) {
+            selectedButton.innerText = "✅ Booked for Tournament";
+            selectedButton.disabled = true;
+            selectedButton.classList.remove("bg-green-600", "hover:bg-green-700");
+            selectedButton.classList.add("bg-gray-400", "cursor-not-allowed");
+          }
+          
+          closeBookingModal();
+          // Refresh balance
+          loadTotalBalance();
+        } else {
+          alert("❌ Booking failed: " + (data.error || "Unknown error"));
+        }
+      } catch (err) {
+        console.error("❌ Booking error:", err);
+        alert("❌ Server error. Please try again later.");
+      }
+    });
+
+    // Fetch and display tournaments
+    async function fetchTournaments() {
+      try {
+        // Check authentication
+        fetch('/tournaments/AllGames')
+          .then(res => {
+            if (res.status === 401) {
+              window.location.href = '/login.html';
+            }
+            return res.json();
+          });
+
+        const [tRes, regRes] = await Promise.all([
+          fetch("/users/tournaments"),
+          fetch("/Match/my-matches")
+        ]);
+
+        const tournaments = await tRes.json();
+        const regData = await regRes.json();
+
+        // Get only tournamentIds where booking is true
+        const registeredIds = regData
+          .filter(r => r.booking === true)
+          .map(r => r.tournamentId);
+
+        const filtered = tournaments.filter(t => {
+          const matchesGame = !selectedGame || t.game.name.toLowerCase() === selectedGame.toLowerCase();
+          const isNotCompleted = t.status !== 'Completed';
+          return matchesGame && isNotCompleted;
+        });
+
+        const container = document.getElementById("tournamentContainer");
+        container.innerHTML = "";
+
+        filtered.forEach(t => {
+          const isFull = t.availableSlots === 0;
+          const isStarted = new Date(t.startTime).getTime() <= Date.now();
+          const isRegistered = registeredIds.includes(t._id);
+
+          const buttonLabel = isFull
+            ? 'Bookings Closed'
+            : isStarted
+            ? 'Started'
+            : isRegistered
+            ? '✅ Booked for Tournament'
+            : 'Book Tournament';
+
+          const isDisabled = isFull || isStarted || isRegistered;
+
+          const startDate = new Date(t.startTime);
+          const formattedTime = startDate.toLocaleTimeString('en-IN', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+
+          const formattedDate = startDate.toLocaleDateString('en-IN', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long'
+          });
+
+          const formattedStart = `${formattedDate} · ${formattedTime}`;
+
+          const badgeHTML = isRegistered
+            ? `<span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow">✅ Booked</span>`
+            : "";
+
+          const card = document.createElement("div");
+          card.className = "relative bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition";
+
+          card.innerHTML = `
+            ${badgeHTML}
+
+            <div class="w-full h-40 bg-gray-200">
+              <img src="${t.game.logo || '/default-game.png'}" class="w-full h-full object-cover" />
+            </div>
+
+            <div class="p-4 space-y-2">
+              <div class="flex flex-wrap justify-between items-center">
+                <h2 class="text-lg font-bold text-gray-800">${t.mapName}</h2>
+                <p class="text-sm text-gray-600">Available Slots: ${t.availableSlots}</p>
+                <span class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">${t.game.mode}</span>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 text-sm text-gray-700 font-medium">
+                <div class="bg-gray-100 rounded p-2 text-center">
+                  <p class="text-xs text-gray-500">Entry Fee</p>
+                  <p>₹${t.entryFee}</p>
+                </div>
+                <div class="bg-gray-100 rounded p-2 text-center">
+                  <p class="text-xs text-gray-500">Per Kill</p>
+                  <p>₹${t.perKillReward}</p>
+                </div>
+                <div class="bg-gray-100 rounded p-2 text-center">
+                  <p class="text-xs text-gray-500">Prize</p>
+                  <p>₹${t.prizeMoney}</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+                <p><strong>Status:</strong> <span class="font-semibold text-blue-600">${t.status}</span></p>
+                <p><strong>Start Time:</strong> <span class="text-red-600 font-semibold">${formattedStart}</span></p>
+              </div>
+
+              <button 
+                onclick="showInstructionsModal('${t._id}', this, ${t.entryFee})"
+                class="${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white py-2 px-4 w-full rounded shadow transition"
+                ${isDisabled ? 'disabled' : ''}>
+                ${buttonLabel}
+              </button>
+            </div>
+          `;
+
+          container.appendChild(card);
+        });
+
+      } catch (err) {
+        console.error("Error fetching tournaments:", err);
+        document.getElementById("tournamentContainer").innerHTML = 
+          '<p class="text-red-400 text-center">Failed to load tournaments. Please refresh the page.</p>';
+      }
+    }
+
+    // Close modals with Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        if (!document.getElementById('bookingModal').classList.contains('hidden')) {
+          backToInstructions();
+        } else if (!document.getElementById('instructionsModal').classList.contains('hidden')) {
+          closeInstructionsModal();
+        }
+      }
+    });
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      loadTotalBalance();
+      fetchTournaments();
+    });
 
   </script>
-
 
 </body>
 </html>
