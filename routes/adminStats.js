@@ -11,8 +11,6 @@ const withdraw = require('../models/withdraw');
 
 const tournamentController = require('../controllers/tournamentController');
 
-
-
 router.get('/stats', async (req, res) => {
   const { from, to } = req.query;
 
@@ -50,21 +48,17 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-
 const { getMatchRegistrations, updateMatchRegistration, bulkUpdateMatchRegistrations } = require('../controllers/matchRegistrationController');
-
 
 router.get('/match-registrations', getMatchRegistrations);
 router.put('/match-registrations/:tournamentId/:username/update', updateMatchRegistration);
 
 router.put('/match-registrations/bulk-update', bulkUpdateMatchRegistrations);
 
-
 const { getAllWithdrawRequests, updateWithdrawRequest } = require('../controllers/WithdrawUpdates');
 
 router.get('/withdraw', getAllWithdrawRequests);
 router.put('/withdraw/:id', updateWithdrawRequest);
-
 
 router.get('/tournaments', tournamentController.getTournaments);
 router.post('/tournaments/create', tournamentController.createTournament);
