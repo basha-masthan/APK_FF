@@ -241,6 +241,23 @@ router.post('/withdraw', requireLogin, async (req, res) => {
   }
 });
 
+// GET /wallet/all-users-wallet
+router.get('/all-users-wallet', async (req, res) => {
+  try {
+    const users = await User.find({}, 'uname wallet balance winningMoney');
+
+    const summary = users.map(user => ({
+      username: user.uname,
+      deposit: user.balance || 0,
+      winning: user.winningMoney || 0
+    }));
+
+    res.json(summary);
+  } catch (err) {
+    console.error("Failed to fetch all users' wallet balances:", err);
+    res.status(500).json({ error: 'Server error fetching balances' });
+  }
+});
 
 
 module.exports = router;

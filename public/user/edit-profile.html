@@ -108,31 +108,27 @@
   </div>
 
   <!-- Script -->
-  <script>
-  
-
-    document.getElementById('editForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-
-      const res = await fetch('/users/edit-profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-
+<script>
+  // Auto-fill user profile data when page loads
+  async function fetchProfile() {
+    try {
+      const res = await fetch('/users/profile');
       const data = await res.json();
-      const msg = document.getElementById('msg');
-      if (data.success) {
-        msg.textContent = '🎉 Profile updated successfully!';
-        msg.className = 'text-green-600';
-      } else {
-        msg.textContent = '❌ ' + (data.error || 'Update failed');
-        msg.className = 'text-red-600';
+
+      if (data.user) {
+        document.getElementById('uname').value = data.user.uname || '';
+        document.getElementById('email').value = data.user.email || '';
+        document.getElementById('mobile').value = data.user.mobile || '';
       }
-    });
-  </script>
+    } catch (err) {
+      console.error('Error loading profile:', err);
+    }
+  }
+
+  // Call fetch on page load
+  window.addEventListener('DOMContentLoaded', fetchProfile);
+</script>
+
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 </body>

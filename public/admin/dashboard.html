@@ -91,7 +91,42 @@
       <h3 class="text-xl font-semibold mb-2">💰 Money Earned</h3>
       <p id="moneyEarned" class="text-3xl font-bold text-red-600">₹0</p>
     </div>
+    <!-- deposits -->
+     <div class="bg-white p-6 rounded-lg shadow text-center">
+      <h3 class="text-xl font-semibold mb-2">�� Money Deposited</h3>
+      <p id="moneyDeposited" class="text-3xl font-bold text-green-600">��0</p>
+     </div>
+     <!-- winning balances -->
+      <div class="bg-white p-6 rounded-lg shadow text-center">
+      <h3 class="text-xl font-semibold mb-2">�� Winning Balances</h3>
+      <p id="winningBalances" class="text-3xl font-bold text-yellow-600">��0</p>
+      </div>
   </div>
+
+<script>
+  window.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const res = await fetch('/wallet/all-users-wallet');
+      const users = await res.json();
+
+      let totalDeposit = 0;
+      let totalWinnings = 0;
+
+      users.forEach(u => {
+        totalDeposit += u.deposit || 0;
+        totalWinnings += u.winning || 0;
+      });
+
+      document.getElementById('moneyDeposited').textContent = `₹${totalDeposit.toLocaleString()}`;
+      document.getElementById('winningBalances').textContent = `₹${totalWinnings.toLocaleString()}`;
+    } catch (e) {
+      console.error('Wallet data fetch error:', e);
+      document.getElementById('moneyDeposited').textContent = '₹0';
+      document.getElementById('winningBalances').textContent = '₹0';
+    }
+  });
+</script>
+
 </section>
 
 <script>
