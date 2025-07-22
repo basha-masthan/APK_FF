@@ -34,14 +34,16 @@ mongoose.connect(process.env.MONGO_URI, {
 }).then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB error:', err));
 
-
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 
 
 
 app.get('/', requireLogin,  (req, res) => {
   res.sendFile(path.join(__dirname, '/index.html'));
 });
-
 
 
 app.get('/Games/ff', requireLogin,  (req, res) => {
@@ -115,13 +117,6 @@ const walletRoutes = require('./routes/wallet');
 app.use('/wallet', walletRoutes);
 
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-});
-
-// const resultsRoute = require('./routes/results');
-// app.use('/results', resultsRoute);
 
 
 const bookingMatchesRoute = require('./routes/Booking_Matches');

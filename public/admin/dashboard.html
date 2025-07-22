@@ -668,12 +668,11 @@ fetchTournaments();
 
 <!-- Match Registrations Section -->
 
-<!-- Match Registrations Section -->
-<!-- Match Registrations Section -->
+<<!-- Match Registrations Section -->
 <section id="section-matches" class="block">
   <h1 class="text-2xl font-bold text-center mb-4">📊 Match Registrations Dashboard</h1>
 
-  <!-- 🔍 Filter Section -->
+  <!-- 🔍 Filter & Actions -->
   <div class="flex justify-between items-center mb-4">
     <div class="flex items-center">
       <label class="mr-2 text-white text-sm">Sort by:</label>
@@ -682,8 +681,6 @@ fetchTournaments();
         <option value="asc">Oldest First</option>
       </select>
     </div>
-    
-    <!-- ✅ NEW: Global Action Buttons -->
     <div class="flex items-center space-x-3">
       <button onclick="updateAllTournaments()" class="bg-blue-600 px-4 py-2 rounded text-white hover:bg-blue-700 font-bold">
         🚀 Update All Tournaments
@@ -694,57 +691,106 @@ fetchTournaments();
     </div>
   </div>
 
-  <!-- ✅ NEW: Progress indicator for bulk updates -->
+  <!-- Progress Bar -->
   <div id="progressContainer" class="hidden mb-4">
     <div class="bg-gray-700 rounded-full h-4">
       <div id="progressBar" class="bg-green-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
     </div>
     <p id="progressText" class="text-sm text-white mt-1 text-center"></p>
   </div>
-
   <div id="dataContainer" class="space-y-6"></div>
 
-<script>
-    // ✅ NEW: Global state to track changes
+  <script>
+    // track pending updates for players (still in-memory until submit/update)
     let pendingUpdates = new Map();
+
+    // CSV parser
+    function csvToArray(csv, delimiter = ',') {
+      const lines = csv.trim().split('\n');
+      const headers = lines[0].split(delimiter).map(h => h.trim());
+      return lines.slice(1).map(line => {
+        const cols = line.split(delimiter).map(e => e.trim());
+        let obj = {};
+        headers.forEach((head, idx) => { obj[head] = cols[idx]; });
+        return obj;
+      });
+    }
+
+    // CSV upload handler: auto-fills table fields and marks as pending
+    function handleCSVUpload(event, tournamentId) {
+      const input = event.target;
+      const statusSpan = document.getElementById(`csv-status-${tournamentId}`);
+
+      if (!input.files.length) return;
+
+      const file = input.files[0];
+      if (!file.name.endsWith('.csv')) {
+        statusSpan.textContent = "❌ Not a CSV file.";
+        statusSpan.className = "text-xs text-red-400";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const csvText = e.target.result;
+          const records = csvToArray(csvText);
+          let matchCount = 0;
+
+          for (const rec of records) {
+            let username = rec.username?.trim();
+            let kills = Number(rec.kills);
+            let money = Number(rec.money) || Number(rec.moneyEarned);
+
+            if (!username) continue;
+            if (isNaN(kills)) kills = 0;
+            if (isNaN(money)) money = 0;
+
+            // Find user in player list (optional)
+            const killsInputId = `kills-${tournamentId}-${username}`;
+            const moneyInputId = `money-${tournamentId}-${username}`;
+
+            if (document.getElementById(killsInputId)) {
+              document.getElementById(killsInputId).value = kills;
+              document.getElementById(moneyInputId).value = money;
+              trackChange(tournamentId, username, 'kills', kills);
+              trackChange(tournamentId, username, 'money', money);
+              matchCount++;
+            }
+          }
+          statusSpan.textContent = `✅ Loaded ${matchCount} users from CSV`;
+          statusSpan.className = "text-xs text-green-400";
+        } catch (err) {
+          statusSpan.textContent = "❌ CSV parse error.";
+          statusSpan.className = "text-xs text-red-400";
+        }
+      };
+      reader.readAsText(file);
+    }
 
     async function fetchRegistrations() {
       const sortOrder = document.getElementById('sortSelect').value;
-
       try {
-        console.log('🔄 Fetching registrations...');
         const res = await fetch('/admin/match-registrations');
-        
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         const json = await res.json();
-        console.log('📦 Full API Response:', json);
-
         if (!json.success) {
-          console.error('❌ API returned error:', json);
           document.getElementById('dataContainer').innerHTML = 
             `<p class="text-red-400">API Error: ${json.error || 'Unknown error'}</p>`;
           return;
         }
-
         const data = json.data;
-        console.log('📊 Tournament count:', Object.keys(data).length);
-        
         if (Object.keys(data).length === 0) {
           document.getElementById('dataContainer').innerHTML = 
-            '<p class="text-yellow-400">No tournament data found. Check if tournaments and registrations exist in database.</p>';
+            '<p class="text-yellow-400">No tournament data found.</p>';
           return;
         }
 
         const container = document.getElementById('dataContainer');
         container.innerHTML = '';
+        // don't clear pendingUpdates: allows in-memory user changes
 
-        // ✅ IMPROVED: Don't clear pending updates on refresh - preserve user changes
-        // pendingUpdates.clear(); // Commented out to preserve changes
-
-        // ✅ FIXED: Use startTime with fallback to date
+        // sort tournaments
         const sortedTournaments = Object.entries(data).sort((a, b) => {
           const dateA = new Date(a[1].tournament.startTime || a[1].tournament.date);
           const dateB = new Date(b[1].tournament.startTime || b[1].tournament.date);
@@ -754,54 +800,32 @@ fetchTournaments();
         sortedTournaments.forEach(([tournamentId, group]) => {
           const t = group.tournament;
           const players = group.players;
-
           const bookedSlots = (t.totalSlots || 0) - (t.availableSlots || 0);
-          
-          // ✅ FIXED: Use startTime for date display
           const displayDate = new Date(t.startTime || t.date);
 
-          // ✅ NEW: Badge logic
+          // badge HTML
           const getBadgeHTML = (tournament) => {
             const status = tournament.status || 'Upcoming';
             const assignmentBadge = tournament.assignmentBadge || 'none';
             const assignmentCount = tournament.assignmentCount || 0;
-
-            let statusBadge = '';
-            let assignmentBadgeHTML = '';
-
-            // Status badge
+            let statusBadge = '', assignmentBadgeHTML = '';
             switch(status) {
-              case 'Upcoming':
-                statusBadge = '<span class="bg-blue-500 text-white px-2 py-1 rounded text-xs">📅 Upcoming</span>';
-                break;
-              case 'Ongoing':
-                statusBadge = '<span class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">⚡ Ongoing</span>';
-                break;
-              case 'Completed':
-                statusBadge = '<span class="bg-green-500 text-white px-2 py-1 rounded text-xs">✅ Completed</span>';
-                break;
-              default:
-                statusBadge = '<span class="bg-gray-500 text-white px-2 py-1 rounded text-xs">❓ Unknown</span>';
+              case 'Upcoming': statusBadge = '<span class="bg-blue-500 text-white px-2 py-1 rounded text-xs">📅 Upcoming</span>'; break;
+              case 'Ongoing': statusBadge = '<span class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">⚡ Ongoing</span>'; break;
+              case 'Completed': statusBadge = '<span class="bg-green-500 text-white px-2 py-1 rounded text-xs">✅ Completed</span>'; break;
+              default: statusBadge = '<span class="bg-gray-500 text-white px-2 py-1 rounded text-xs">❓ Unknown</span>';
             }
-
-            // Assignment badge
             switch(assignmentBadge) {
-              case 'assigned':
-                assignmentBadgeHTML = '<span class="bg-green-600 text-white px-2 py-1 rounded text-xs ml-2">🎯 Assigned Successfully</span>';
-                break;
-              case 'multiple':
-                assignmentBadgeHTML = `<span class="bg-purple-600 text-white px-2 py-1 rounded text-xs ml-2">🔄 Multiple Assignment (${assignmentCount}x)</span>`;
-                break;
-              default:
-                assignmentBadgeHTML = '';
+              case 'assigned': assignmentBadgeHTML = '<span class="bg-green-600 text-white px-2 py-1 rounded text-xs ml-2">🎯 Assigned Successfully</span>'; break;
+              case 'multiple': assignmentBadgeHTML = `<span class="bg-purple-600 text-white px-2 py-1 rounded text-xs ml-2">🔄 Multiple Assignment (${assignmentCount}x)</span>`; break;
+              default: assignmentBadgeHTML = '';
             }
-
             return statusBadge + assignmentBadgeHTML;
           };
 
+          // build card with CSV upload field
           const section = document.createElement('div');
           section.className = 'bg-gray-800 p-4 rounded-lg shadow';
-
           section.innerHTML = `
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center space-x-3">
@@ -816,27 +840,31 @@ fetchTournaments();
                 <span class="text-sm text-yellow-400">
                   🗓️ ${displayDate.toLocaleDateString()} - ${displayDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
-                <!-- ✅ UPDATED: Tournament update button - always allow updates -->
                 <button onclick="updateSingleTournament('${tournamentId}')" 
                         class="bg-orange-600 px-3 py-1 rounded text-white hover:bg-orange-700 text-sm transition-colors">
                   ${t.status === 'Completed' ? '🔄 Re-assign' : '🎯 Complete & Assign'}
                 </button>
               </div>
             </div>
-
             <p class="text-sm text-white mb-1">
               🧮 Total Slots: <span class="text-green-400">${t.totalSlots}</span> |
               Booked: <span class="text-yellow-300">${bookedSlots}</span> |
               Available: <span class="text-red-400">${t.availableSlots}</span>
             </p>
-
             <p class="text-sm text-white mb-3">
               💰 Entry Fee: ₹${t.entryFee} |
               🎯 Per Kill Reward: ₹${t.perKillReward} |
               🏆 Prize Money: ₹${t.prizeMoney}
             </p>
-
-            <!-- ✅ NEW: Assignment Info -->
+            <!-- CSV UPLOAD BUTTON -->
+            <div class="mb-3 flex items-center gap-2">
+              <label class="bg-blue-700 hover:bg-blue-800 text-white py-1 px-3 rounded cursor-pointer text-xs font-bold transition">
+                📥 Upload CSV
+                <input type="file" accept=".csv" class="hidden"
+                  onchange="handleCSVUpload(event, '${tournamentId}')">
+              </label>
+              <span id="csv-status-${tournamentId}" class="text-xs text-green-400"></span>
+            </div>
             ${t.assignmentCount > 0 ? `
               <div class="bg-gray-700 p-2 rounded mb-3">
                 <p class="text-sm text-gray-300">
@@ -845,7 +873,6 @@ fetchTournaments();
                 </p>
               </div>
             ` : ''}
-
             <div class="overflow-x-auto">
               <table class="table-auto w-full text-white text-left border border-gray-700">
                 <thead>
@@ -859,11 +886,9 @@ fetchTournaments();
                 </thead>
                 <tbody class="text-sm">
                   ${players.map(player => {
-                    // ✅ NEW: Check if this player has pending updates
                     const key = `${tournamentId}-${player.username}`;
                     const hasPendingUpdate = pendingUpdates.has(key);
                     const pendingData = pendingUpdates.get(key);
-                    
                     return `
                     <tr class="border-t border-gray-700" id="row-${tournamentId}-${player.username}" 
                         style="${hasPendingUpdate ? 'background-color: rgba(59, 130, 246, 0.1);' : ''}">
@@ -902,22 +927,16 @@ fetchTournaments();
               </table>
             </div>
           `;
-
           container.appendChild(section);
         });
-        
-        console.log(`✅ Successfully rendered ${sortedTournaments.length} tournaments`);
       } catch (err) {
-        console.error('🚨 Network/Parse Error:', err);
         document.getElementById('dataContainer').innerHTML = 
           `<p class="text-red-400">Error: ${err.message}</p>`;
       }
     }
 
-    // ✅ IMPROVED: Track individual field changes
     function trackChange(tournamentId, username, field, value) {
       const key = `${tournamentId}-${username}`;
-      
       if (!pendingUpdates.has(key)) {
         pendingUpdates.set(key, {
           tournamentId,
@@ -933,19 +952,13 @@ fetchTournaments();
           existing.moneyEarned = parseFloat(value) || 0;
         }
       }
-
-      // Update visual indicator
       const statusElement = document.getElementById(`status-${tournamentId}-${username}`);
       const rowElement = document.getElementById(`row-${tournamentId}-${username}`);
-      
       statusElement.textContent = 'Modified';
       statusElement.className = 'text-yellow-400 text-xs font-medium';
       rowElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-
-      console.log(`📝 Tracked change: ${username} in ${tournamentId}`, pendingUpdates.get(key));
     }
 
-    // ✅ IMPROVED: Update single tournament with better feedback
     async function updateSingleTournament(tournamentId) {
       const tournamentUpdates = Array.from(pendingUpdates.values())
         .filter(update => update.tournamentId === tournamentId);
@@ -959,8 +972,6 @@ fetchTournaments();
       if (!confirmed) return;
 
       try {
-        console.log('🚀 Updating single tournament with status change...');
-        
         const res = await fetch('/admin/match-registrations/tournament-complete-update', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -969,44 +980,87 @@ fetchTournaments();
             updates: tournamentUpdates 
           })
         });
-
         const json = await res.json();
-        console.log('📦 Tournament complete response:', json);
-        
         if (json.success) {
-          // Remove updated items from pending updates
           tournamentUpdates.forEach(update => {
             pendingUpdates.delete(`${update.tournamentId}-${update.username}`);
           });
-          
-          // ✅ NEW: Show detailed success message
           const reAssignMsg = json.isReassignment ? 'Re-assignment' : 'Assignment';
           const moneyMsg = json.totalMoneyDistributed !== 0 ? `\n💰 Money distributed: ₹${json.totalMoneyDistributed}` : '';
-          
           alert(`✅ Tournament ${reAssignMsg.toLowerCase()} successful!\n🎯 ${json.badgeMessage}\n📊 Updated ${json.updatedCount} players${moneyMsg}`);
-          
-          // Refresh the display
           fetchRegistrations();
         } else {
           alert(`❌ Tournament completion failed: ${json.error}`);
         }
       } catch (err) {
-        console.error('🚨 Tournament completion error:', err);
         alert('❌ Server error during tournament completion.');
       }
     }
 
-    // Rest of your functions remain the same...
-    // updateAllTournaments(), resetAllChanges(), etc.
+    async function updateAllTournaments() {
+      if (pendingUpdates.size === 0) {
+        alert('⚠️ No changes to update. Modify some player stats first.');
+        return;
+      }
+      const confirmed = confirm(`🚀 Update ${pendingUpdates.size} player records across all tournaments?`);
+      if (!confirmed) return;
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      progressContainer.classList.remove('hidden');
+      try {
+        const updates = Array.from(pendingUpdates.values());
+        progressText.textContent = `Updating ${updates.length} players...`;
+        progressBar.style.width = '10%';
+        const res = await fetch('/admin/match-registrations/bulk-update', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updates })
+        });
+        progressBar.style.width = '70%';
+        const json = await res.json();
+        progressBar.style.width = '100%';
+        if (json.success) {
+          progressText.textContent = `✅ Successfully updated ${json.updatedCount} players!`;
+          pendingUpdates.clear();
+          setTimeout(() => {
+            progressContainer.classList.add('hidden');
+            fetchRegistrations();
+            alert(`🎉 Bulk update completed! Updated ${json.updatedCount} players across ${json.tournamentsAffected} tournaments.`);
+          }, 2000);
+        } else {
+          progressText.textContent = '❌ Update failed';
+          alert(`❌ Bulk update failed: ${json.error}`);
+          progressContainer.classList.add('hidden');
+        }
+      } catch (err) {
+        progressText.textContent = '❌ Network error';
+        alert('❌ Network error during bulk update.');
+        setTimeout(() => progressContainer.classList.add('hidden'), 3000);
+      }
+    }
 
-    // Initialize on page load
+    function resetAllChanges() {
+      if (pendingUpdates.size === 0) {
+        alert('⚠️ No changes to reset.');
+        return;
+      }
+      const confirmed = confirm(`🔄 Reset ${pendingUpdates.size} pending changes?`);
+      if (!confirmed) return;
+      pendingUpdates.clear();
+      fetchRegistrations();
+      alert('✅ All changes have been reset.');
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       fetchRegistrations();
     });
 
-    fetchRegistrations();
-</script>
+    fetchRegistrations()
+  
+    </script>
 </section>
+
 
 
 
