@@ -27,10 +27,15 @@
     <form action="/admin/tournaments/create" method="POST" class="space-y-6" >
       
       <!-- Game Info -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Game Name</label>
-        <input type="text" name="gameName" required class="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g. Free Fire" />
-      </div>
+     <div>
+  <label class="block text-sm font-medium text-gray-700">Game Name</label>
+  <select id="gameSelect" name="gameName" required
+    class="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:ring-blue-500 focus:border-blue-500">
+    <option value="">Select a game...</option>
+    <!-- options dynamically loaded here -->
+  </select>
+</div>
+
 
       <div>
         <label class="block text-sm font-medium text-gray-700">Game Logo URL</label>
@@ -40,6 +45,9 @@
           <option value="/img/ff-duo.jpg">FF Duo</option>
           <option value="/img/ff-squard.webp">FF Squad</option>
           <option value="/img/ff-lone_wolf.jpg">FF lone Wolf</option>
+          <option value="/img/pubg_4.png">PUBG Squad</option>
+          <option value="/img/pubg_1.png">PUBG 1V1</option>
+          <option value="/img/pubg.png">PUBG </option>
 
           
 
@@ -112,5 +120,26 @@
       </div>
     </form>
   </div>
+
+
+  <script>
+  async function loadGameOptions() {
+    try {
+      const res = await fetch('/games/AllGames');
+      const games = await res.json();
+      const select = document.getElementById('gameSelect');
+      games.forEach(game => {
+        const option = document.createElement('option');
+        option.value = game.gameName;
+        option.textContent = game.gameName;
+        select.appendChild(option);
+      });
+    } catch (err) {
+      alert('Unable to load games.');
+    }
+  }
+  document.addEventListener('DOMContentLoaded', loadGameOptions);
+</script>
+
 </body>
 </html>
