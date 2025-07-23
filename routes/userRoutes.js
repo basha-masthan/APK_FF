@@ -56,23 +56,95 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/edit-profile', requireLogin, async (req, res) => {
-  const { uname, email, password } = req.body;
-  const username = req.session.user?.uname;
-
+// GET /users/profile
+router.get('/profile', requireLogin, async (req, res) => {
   try {
-    const updateData = { uname, email };
-    if (password) updateData.password = password;
+    const username = req.session.user?.uname;
+    if (!username) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
 
-    const updated = await User.findOneAndUpdate({ uname: username }, updateData, { new: true });
-    if (!updated) return res.status(404).json({ error: 'User not found' });
+    // Fetch full user info excluding password for security
+    const user = await User.findOne({ uname: username }).select('-password');
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
 
-    res.json({ success: true });
-
+    // You can also fetch related data (e.g., registered tournaments) if needed
+    
+    res.json({
+      success: true,
+      user: {
+        uname: user.uname,
+        email: user.email,
+        balance: user.balance,
+        winningMoney: user.winningMoney,
+        notificationSettings: user.notificationSettings,
+        // ...add more fields as desired
+      }
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Update failed' });
+    console.error('Error in /profile:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
+
+
+
+// PUT /users/edit-profile
+router.put('/edit-profile', requireLogin, async (req, res) => {
+  try {
+    const username = req.session.user?.uname;
+    if (!username) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const { uname, email, password } = req.body;
+
+    // Prepare update object
+    let updateData = { uname, email }; // You can add more fields as required
+
+    // If password is provided, hash it before updating
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      updateData.password = hashedPassword;
+    }
+
+    // Update user by current username (session user)
+    const updatedUser = await User.findOneAndUpdate(
+      { uname: username },
+      updateData,
+      { new: true, runValidators: true } // Return updated doc, validate input
+    ).select('-password'); // Exclude password from response
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    // Update session user info if username changed
+    if (uname && uname !== username) {
+      req.session.user.uname = uname;
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        uname: updatedUser.uname,
+        email: updatedUser.email,
+        balance: updatedUser.balance,
+        winningMoney: updatedUser.winningMoney,
+        notificationSettings: updatedUser.notificationSettings,
+      }
+    });
+  } catch (err) {
+    console.error('Error in /edit-profile:', err);
+    res.status(500).json({ success: false, error: 'Failed to update profile' });
+  }
+});
+
 
 
 // ✅ PUT update user
@@ -141,26 +213,6 @@ router.post('/logout', (req, res) => {
 
 
 
-router.get('/profile', requireLogin, async (req, res) => {
-  try {
-    const username = req.session.user?.uname;
-    if (!username) {
-      return res.status(401).json({ success: false, error: 'Unauthorized or invalid session' });
-    }
-
-    console.log('Fetching matches for:', username);
-
-    const registered = await MatchRegistration.find({ username }).select('tournamentId');
-
-    console.log('Registrations:', registered);
-
-    const ids = registered.map(r => r.tournamentId?.toString());
-    res.json({ success: true, tournamentIds: ids });
-  } catch (err) {
-    console.error('Profile route error:', err);
-    res.status(500).json({ success: false, error: 'Server error' });
-  }
-});
 
 
 router.get('/tournaments', requireLogin, async (req, res) => {
