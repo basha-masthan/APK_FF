@@ -15,12 +15,13 @@ app.use(express.json());
 
 app.use(morgan('dev')); // You can also use 'combined' for more details
 
-
 app.use(session({
-  secret: 'supersecretkey', // change this in production!
+  secret: 'your-secret-key',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false } // true only if HTTPS
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+  }
 }));
 
 
@@ -72,6 +73,10 @@ app.post('/users/login', async (req, res) => {
   if (!user || user.password !== password) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
+  if (res.ok) {
+  localStorage.setItem('isLoggedIn', 'true');
+  window.location.href = "/games.html";
+}
 
   req.session.user = {
     id: user._id,

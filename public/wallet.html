@@ -23,12 +23,12 @@
       <div class="bg-white p-6 rounded-xl shadow-md flex items-center justify-between mb-6">
         <div>
           <!-- <p class="text-gray-500">Current Balance</p>
-          <h2 id="balance" class="text-2xl font-semibold">₹0</h2> -->
+          <h2 id="balance" class="text-2xl font-semibold">🪙0</h2> -->
           <!-- i want deposit and winning amount buttons with info-->
           <p class="text-gray-500">Wallet Balance</p>
-          <h2 id="balance" class="text-2xl font-semibold">₹0</h2>
+          <h2 id="balance" class="text-2xl font-semibold">🪙0</h2>
           <p class="text-gray-500">Winning Balance</p>
-          <h2 id="winb" class="text-2xl font-semibold">₹0</h2>
+          <h2 id="winb" class="text-2xl font-semibold">🪙0</h2>
           
 
         </div>
@@ -90,12 +90,12 @@ async function fetchWalletData() {
     // Fetch normal balance
     const balanceRes = await fetch('/wallet/balance');
     const balanceData = await balanceRes.json();
-    document.getElementById('balance').textContent = `₹${balanceData.balance || 0}`;
+    document.getElementById('balance').textContent = `🪙${balanceData.balance || 0}`;
 
     // ✅ Fetch winning money
     const winRes = await fetch('/wallet/balance/total');
     const winData = await winRes.json();
-    document.getElementById('winb').textContent = `₹${winData.winningMoney || 0}`;
+    document.getElementById('winb').textContent = `🪙${winData.winningMoney || 0}`;
 
     // Fetch transaction history
     const txnRes = await fetch('/wallet/transactions');
@@ -111,7 +111,7 @@ async function fetchWalletData() {
       row.innerHTML = `
         <td class="p-2 border">${new Date(txn.date).toLocaleString()}</td>
         <td class="p-2 border">${txn.type}</td>
-        <td class="p-2 border">₹${txn.amount}</td>
+        <td class="p-2 border">🪙${txn.amount}</td>
         <td class="p-2 border">${txn.status}</td>
       `;
       tbody.appendChild(row);
@@ -212,7 +212,7 @@ async function requestWithdraw() {
     }
 
     if (parseFloat(amount) > balanceData.winningMoney) {
-      alert(`❌ Withdrawal amount exceeds your winning balance of ₹${balanceData.winningMoney}`);
+      alert(`❌ Withdrawal amount exceeds your winning balance of 🪙${balanceData.winningMoney}`);
       return;
     }
 

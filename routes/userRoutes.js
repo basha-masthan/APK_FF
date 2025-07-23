@@ -133,27 +133,35 @@ router.post('/login', async (req, res) => {
 
 
 router.post('/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) {
-      return res.status(500).json({ error: 'Logout failed' });
-    }
-    res.clearCookie('connect.sid');
-    res.redirect('/login.html'); // or your landing page
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid'); // Name may vary
+    res.redirect('/login.html');   // Or send JSON if using AJAX
   });
 });
+
 
 
 router.get('/profile', requireLogin, async (req, res) => {
   try {
     const username = req.session.user?.uname;
+    if (!username) {
+      return res.status(401).json({ success: false, error: 'Unauthorized or invalid session' });
+    }
+
+    console.log('Fetching matches for:', username);
+
     const registered = await MatchRegistration.find({ username }).select('tournamentId');
-    const ids = registered.map(r => r.tournamentId.toString());
+
+    console.log('Registrations:', registered);
+
+    const ids = registered.map(r => r.tournamentId?.toString());
     res.json({ success: true, tournamentIds: ids });
   } catch (err) {
-    console.error(err);
+    console.error('Profile route error:', err);
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
+
 
 router.get('/tournaments', requireLogin, async (req, res) => {
   const { game } = req.query;

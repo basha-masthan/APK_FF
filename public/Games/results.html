@@ -89,7 +89,7 @@
                     <h2 class="text-2xl font-bold text-yellow-400 mb-1">
                       🏆 ${mapName ? mapName + ' - ' : ''}${tournamentCode}
                     </h2>
-                    <p class="text-gray-400">📅 ${formatDate(tournamentDate)} • 💰 Prize Pool: ₹${prizeMoney}</p>
+                    <p class="text-gray-400">📅 ${formatDate(tournamentDate)} • 💰 Prize Pool: 🪙${prizeMoney}</p>
                   </div>
                   <div class="text-right">
                     <p class="text-sm text-blue-300">👥 ${sortedPlayers.length} Players</p>
@@ -105,7 +105,7 @@
                       </div>
                       <div class="text-right">
                         <p class="text-2xl font-bold text-yellow-300">${myStats.kills || 0} 🎯</p>
-                        <p class="text-xl font-bold text-green-300">₹${myStats.moneyEarned || 0}</p>
+                        <p class="text-xl font-bold text-green-300">🪙${myStats.moneyEarned || 0}</p>
                       </div>
                     </div>
                   </div>
@@ -152,7 +152,7 @@
                           <div class="text-center font-bold ${
                             (player.moneyEarned || 0) > 0 ? 'text-green-300' : 'text-gray-500'
                           }">
-                            ₹${player.moneyEarned || 0}
+                            🪙${player.moneyEarned || 0}
                           </div>
                         </div>
                       `;
@@ -167,7 +167,7 @@
                       <span class="text-yellow-100 font-semibold">${t.mvp.username}</span>
                       <div class="text-right">
                         <span class="text-yellow-300 font-bold">${t.mvp.kills || 0} Kills</span>
-                        <span class="text-green-300 font-bold ml-4">₹${t.mvp.moneyEarned || 0}</span>
+                        <span class="text-green-300 font-bold ml-4">🪙${t.mvp.moneyEarned || 0}</span>
                       </div>
                     </div>
                   </div>
