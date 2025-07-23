@@ -99,33 +99,20 @@ router.put('/edit-profile', requireLogin, async (req, res) => {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    const { uname, email, password } = req.body;
+    const { email, password } = req.body;
+    let updateData = {};
+    if (email) updateData.email = email;
+    if (password)       updateData.password =password;
 
-    // Prepare update object
-    let updateData = { uname, email }; // You can add more fields as required
 
-    // If password is provided, hash it before updating
-    if (password) {
-      const bcrypt = require('bcryptjs');
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-      updateData.password = hashedPassword;
-    }
-
-    // Update user by current username (session user)
     const updatedUser = await User.findOneAndUpdate(
       { uname: username },
       updateData,
-      { new: true, runValidators: true } // Return updated doc, validate input
-    ).select('-password'); // Exclude password from response
+      { new: true, runValidators: true }
+    ).select('-password');
 
     if (!updatedUser) {
       return res.status(404).json({ success: false, error: 'User not found' });
-    }
-
-    // Update session user info if username changed
-    if (uname && uname !== username) {
-      req.session.user.uname = uname;
     }
 
     res.json({
@@ -144,7 +131,6 @@ router.put('/edit-profile', requireLogin, async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to update profile' });
   }
 });
-
 
 
 // ✅ PUT update user
