@@ -4,17 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Game Portal - Login/Signup</title>
-    <style>
-    html, body { 
-      width: 100vw; 
-      height: 100vh; 
-      overflow: hidden !important;   /* Prevent scroll on both axes */
-      position: relative; 
+  <style>
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden !important;
+      position: relative;
       margin: 0;
       padding: 0;
     }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Courier New', monospace; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Courier New', monospace;
+    }
     body {
       background: #0f0f0f;
       color: #fff;
@@ -108,6 +112,8 @@
       border: 1px solid #0ff;
       color: #0ff;
       border-radius: 5px;
+      width: 100%;
+      font-size: 1rem;
     }
     .face button {
       padding: 10px;
@@ -118,17 +124,8 @@
       font-weight: bold;
       cursor: pointer;
       margin-top: 10px;
-    }
-    input {
-      width: 100%;
-      font-size: 1rem;
-    }
-    button {
-      text-align: center;
-      justify-content: center;
-      width: 100%;
-      margin: 0 auto;
       font-size: 1.1rem;
+      width: 100%;
     }
     .face .toggle {
       background: none;
@@ -136,9 +133,38 @@
       margin-top: 20px;
       color: #0ff;
       text-align: center;
-      justify-content: center;
       text-decoration: underline;
       cursor: pointer;
+    }
+    #termsModal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+    }
+    #termsModal .box {
+      background: #111;
+      color: #0ff;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 400px;
+      width: 90%;
+    }
+    #termsModal p {
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+    #termsModal label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    #termsModal input[type="checkbox"] {
+      margin-right: 8px;
     }
     @media (max-width: 500px) {
       .container {
@@ -152,7 +178,6 @@
       }
     }
   </style>
-
 </head>
 <body>
 
@@ -160,31 +185,57 @@
 
   <div class="container" id="flipCard">
     <div class="card">
-      <!-- Login Side -->
+
+      <!-- 🔐 Login Face -->
       <div class="face front">
         <h2>🔐 Login</h2>
-        <form action="/users/login" method="POST">
-          <input type="text"  name="email"  placeholder="Phone Number" required />
-          <input type="password" name="password" placeholder="Password" required />          
+        <form id="login-form">
+          <input type="text" name="email" placeholder="Phone Number" required />
+          <input type="password" name="password" placeholder="Password" required />
           <button type="submit">Login</button>
           <p id="login-error" style="color: red; margin-top: 10px;"></p>
         </form>
         <button class="toggle" onclick="flip()">New here? Sign up</button>
       </div>
 
-      <!-- Signup Side -->
+      <!-- 🆕 Signup Face -->
       <div class="face back">
         <h2>🆕 Signup</h2>
-        <form action="/users" method="POST" id="signup-form">
+        <form id="signup-form">
           <input type="text" name="uname" placeholder="Username" required />
-          <input type="text" name="email"  placeholder="Phome Number" required />
+          <input type="text" name="email" placeholder="Phone Number" required />
           <input type="password" name="password" placeholder="Password" required />
           <button type="submit">Register</button>
-            <p id="signup-error" style="color: red; margin-top: 10px;"></p>
-
+          <p id="signup-error" style="color: red; margin-top: 10px;"></p>
         </form>
         <button class="toggle" onclick="flip()">Already a user? Login</button>
       </div>
+
+    </div>
+  </div>
+
+  <!-- 📜 Terms & Conditions Modal -->
+  <div id="termsModal">
+    <div class="box">
+      <h2>📜 Terms & Conditions</h2>
+     <p style="font-size: 0.9rem;">
+  By Signing up on WinZone Arena, you agree to the following terms and conditions:
+  <br><br>
+  • You will abide by all tournament rules, schedules, and fair play standards provided for each event.<br>
+  • Any form of cheating, hacking, use of unauthorized software, or manipulation of game mechanics will result in immediate disqualification and permanent ban from the platform.<br>
+  • You understand that match disputes will be resolved at the sole discretion of WinZone Arena, and decisions made by the admin team are final.<br>
+  • Prizes and rewards will be distributed as per the specified structure after results are verified.<br>
+  • Any misuse of the platform, including offensive behavior or impersonation, will lead to account suspension.<br>
+  • WinZone Arena is not responsible for server lag, disconnections, or other technical issues on the part of game publishers or your personal network.<br>
+  • Your participation indicates that you are at least 13 years old or have parental consent, and you agree to provide accurate and verifiable information.<br>
+  • You consent to receiving notifications related to your matches, payments, or platform updates via email or phone.
+  <br><br>
+  By continuing, you acknowledge that you have read, understood, and agreed to these terms.
+</p>
+
+      <label><input type="checkbox" id="acceptTerms"> I accept the terms & conditions</label>
+      <button onclick="confirmTerms()" class="bold p-2 bg-green-600">Accept & Continue</button>
+      <button onclick="closeTerms()" style="margin-top: 10px; background: transparent; color: #f66; border: none; text-decoration: underline;">Cancel</button>
     </div>
   </div>
 
@@ -192,61 +243,71 @@
     function flip() {
       document.getElementById('flipCard').classList.toggle('flipped');
     }
+
+    let tempFormData = {};
+
+    document.getElementById("signup-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const form = e.target;
+      tempFormData = {
+        uname: form.uname.value,
+        email: form.email.value,
+        password: form.password.value
+      };
+      document.getElementById("termsModal").style.display = "flex";
+    });
+
+    function closeTerms() {
+      document.getElementById("termsModal").style.display = "none";
+      document.getElementById("acceptTerms").checked = false;
+    }
+
+    async function confirmTerms() {
+      const accepted = document.getElementById("acceptTerms").checked;
+      if (!accepted) {
+        alert("You must accept the terms and conditions to continue.");
+        return;
+      }
+
+      document.getElementById("termsModal").style.display = "none";
+
+      const res = await fetch("/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(tempFormData)
+      });
+
+      if (res.ok) {
+        window.location.href = "/games.html";
+      } else {
+        const data = await res.json();
+        document.getElementById("signup-error").textContent = data.error || "Something went wrong";
+      }
+    }
+
+    document.getElementById("login-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const email = form.email.value;
+      const password = form.password.value;
+
+      const res = await fetch("/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      if (res.ok) {
+        window.location.href = "/games.html";
+      } else {
+        const data = await res.json();
+        document.getElementById("login-error").textContent = data.error || "Invalid credentials";
+      }
+    });
+
+    window.addEventListener('resize', () => window.scrollTo(0, 0));
+    window.onload = () => window.scrollTo(0, 0);
   </script>
-  <script>
-  document.getElementById("signup-form").addEventListener("submit", async function (e) {
-    e.preventDefault(); // prevent default form submission
-
-    const form = e.target;
-    const uname = form.uname.value;
-    const email = form.email.value;
-    const password = form.password.value;
-
-    const res = await fetch("/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uname, email, password })
-    });
-
-    if (res.ok) {
-
-      window.location.href = "/tournaments.html";
-    } else {
-      const data = await res.json();
-      document.getElementById("signup-error").textContent = data.error || "Something went wrong";
-    }
-  });
-  document.querySelector(".face.front form").addEventListener("submit", async function (e) {
-    e.preventDefault(); // prevent default form submission
-
-    const form = e.target;
-    const email = form.email.value;
-    const password = form.password.value;
-
-    const res = await fetch("/users/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    });
-
-    if (res.ok) {
-      window.location.href = "/games.html";
-    } else {
-      const data = await res.json();
-      document.getElementById("login-error").textContent = data.error || "Invalid credentials";
-    }
-  });
-</script>
-<script>
-  // On resize, always reset scroll to top left (for extra stubborn browsers)
-  window.addEventListener('resize', function() { window.scrollTo(0,0); });
-  // On load, too
-  window.onload = () => { window.scrollTo(0,0); };
-</script>
-
-
 
 </body>
 </html>
-
-
