@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>💸 Game Adudham Bhai - Money Stats</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-white min-h-screen px-4 py-8">
+
+  <h1 class="text-3xl font-bold mb-8 text-center text-green-400">💸 Game Adudham Bhai - Money Dashboard</h1>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <!-- Total Deposits -->
+    <div class="bg-gray-800 rounded-2xl shadow-xl p-6">
+      <h2 class="text-lg text-gray-300 mb-2">Total Deposits</h2>
+      <p id="moneyDeposited" class="text-3xl font-bold text-green-400">₹0</p>
+    </div>
+
+    <!-- Match Entry Fee -->
+    <div class="bg-gray-800 rounded-2xl shadow-xl p-6">
+      <h2 class="text-lg text-gray-300 mb-2">Match Entry Fees Collected</h2>
+      <p id="entryFeesCollected" class="text-3xl font-bold text-blue-400">₹0</p>
+    </div>
+
+    <!-- Withdraw Requests -->
+    <div class="bg-gray-800 rounded-2xl shadow-xl p-6">
+      <h2 class="text-lg text-gray-300 mb-2">Withdraw Requests</h2>
+      <p id="withdrawRequests" class="text-3xl font-bold text-yellow-400">₹0</p>
+    </div>
+
+    <!-- Total Earnings -->
+    <div class="bg-gray-800 rounded-2xl shadow-xl p-6">
+      <h2 class="text-lg text-gray-300 mb-2">Total Earnings</h2>
+      <p id="totalEarnings" class="text-3xl font-bold text-pink-500">₹0</p>
+    </div>
+  </div>
+
+  <script>
+    async function fetchStats() {
+      try {
+        const [depositRes, entryFeeRes, withdrawRes] = await Promise.all([
+          fetch('/wallet/transactions/total-deposit'),
+          fetch('/wallet/tournaments/total-entry-fee'),
+          fetch('/wallet/withdraw-requests/total')
+        ]);
+
+        const depositData = await depositRes.json();
+        const entryFeeData = await entryFeeRes.json();
+        const withdrawData = await withdrawRes.json();
+
+        const depositAmount = depositData.totalDeposited || 0;
+        const entryFeeAmount = entryFeeData.totalEntryFees || 0;
+        const withdrawAmount = withdrawData.totalWithdrawRequests || 0;
+        const earnings = depositAmount + entryFeeAmount - withdrawAmount;
+
+        document.getElementById('moneyDeposited').textContent = `₹${depositAmount.toLocaleString()}`;
+        document.getElementById('entryFeesCollected').textContent = `₹${entryFeeAmount.toLocaleString()}`;
+        document.getElementById('withdrawRequests').textContent = `₹${withdrawAmount.toLocaleString()}`;
+        document.getElementById('totalEarnings').textContent = `₹${earnings.toLocaleString()}`;
+
+        console.log("📊 Fetched Stats:", { depositAmount, entryFeeAmount, withdrawAmount, earnings });
+      } catch (error) {
+        console.error("❌ Error fetching dashboard stats:", error);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchStats);
+  </script>
+
+</body>
+</html>

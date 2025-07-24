@@ -7,8 +7,11 @@ const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const withdraw = require('../models/withdraw');
 const MatchRegistration = require('../models/MatchRegistration');
+const Tournament = require('../models/Tournament');
 const dotenv = require('dotenv');
 dotenv.config();
+
+
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -60,7 +63,12 @@ router.post('/razorpay/order', requireLogin, async (req, res) => {
 });
 
 router.post('/deposit/success', requireLogin, async (req, res) => {
-  const { transactionId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+  const {
+    transactionId,
+    razorpay_payment_id,
+    razorpay_order_id,
+    razorpay_signature
+  } = req.body;
 
   try {
     const txn = await Transaction.findById(transactionId);
@@ -68,13 +76,13 @@ router.post('/deposit/success', requireLogin, async (req, res) => {
       return res.status(400).json({ error: 'Invalid or already completed transaction' });
     }
 
-    const bodyData = razorpay_order_id + "|" + razorpay_payment_id;
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(bodyData)
-      .digest("hex");
+    const generatedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
 
-    if (expectedSignature !== razorpay_signature) {
+    if (generatedSignature !== razorpay_signature) {
+      console.log("❌ Signature mismatch", { generatedSignature, razorpay_signature });
       return res.status(403).json({ error: 'Signature verification failed' });
     }
 
@@ -91,6 +99,7 @@ router.post('/deposit/success', requireLogin, async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
+    console.error("❌ Error verifying deposit", err);
     res.status(500).json({ error: 'Deposit confirmation failed' });
   }
 });
@@ -259,5 +268,49 @@ router.get('/all-users-wallet', async (req, res) => {
   }
 });
 
+router.get('/transactions/total-deposit', async (req, res) => {
+  try {
+    const txns = await Transaction.find({ type: 'Deposit', status: 'Success' });
+    const totalDeposited = txns.reduce((sum, txn) => sum + (txn.amount || 0), 0);
+    res.json({ success: true, totalDeposited });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+router.get('/tournaments/total-entry-fee', async (req, res) => {
+  const tournaments = await Tournament.find();
+  const totalEntryFees = tournaments.reduce((acc, t) => {
+    const slotsFilled = t.totalSlots - t.availableSlots;
+    return acc + slotsFilled * t.entryFee;
+  }, 0);
+  res.json({ totalEntryFees });
+});
+
+router.get('/withdraw-requests/total', async (req, res) => {
+  try {
+    const result = await Transaction.aggregate([
+      {
+        $match: {
+          type: 'withdraw',
+          status: { $in: ['Pending', 'Completed'] } // exclude Cancelled or Failed
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    const totalWithdrawRequests = result[0]?.total || 0;
+    res.json({ totalWithdrawRequests });
+  } catch (error) {
+    console.error("Error fetching withdraw requests total:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 module.exports = router;
