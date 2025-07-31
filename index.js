@@ -90,6 +90,8 @@ app.post('/users/login', async (req, res) => {
 
 
 
+const supportRoutes = require('./routes/support');
+app.use('/support', supportRoutes);
 
 
 const adminStatsRoutes = require('./routes/adminStats');
@@ -121,11 +123,15 @@ app.get('/session-info', (req, res) => {
 const walletRoutes = require('./routes/wallet');
 app.use('/wallet', walletRoutes);
 
-
+const notification = require('./routes/notifications');
+app.use('/not',notification)
 
 
 const bookingMatchesRoute = require('./routes/Booking_Matches');
 app.use('/Match', bookingMatchesRoute);
+
+const attachNotificationCount = require('./middleware/notifications');
+app.use(attachNotificationCount);
 
 
 

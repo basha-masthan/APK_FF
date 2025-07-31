@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin - Send Notifications</title>
+  <style>
+    body { font-family: system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; max-width: 1000px; margin: 30px auto; padding: 0 16px; background: #f5f7fa; }
+    h1 { margin-bottom: 16px; }
+    .panel { display: flex; gap: 20px; flex-wrap: wrap; }
+    .card { flex: 1 1 480px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); margin-bottom: 20px; }
+    label { display: block; margin-top: 12px; font-weight: 600; }
+    input[type=text], textarea, select { width: 100%; padding: 10px; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+    .user-list { max-height: 220px; overflow-y: auto; border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; background: #f9fafb; margin-top: 6px; }
+    .user-item { padding: 8px 12px; border-radius: 5px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; cursor: pointer; border: 1px solid transparent; }
+    .user-item.selected { background: #e0f2fe; border-color: #7dd3fc; }
+    .small { font-size: 12px; color: #555; margin-top: 4px; }
+    button { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; background: #2563eb; color: white; }
+    button.secondary { background: #4b5563; }
+    .badge { background: #2563eb; color: white; padding: 4px 10px; border-radius: 999px; font-size: 12px; display: inline-block; margin-right: 4px; margin-bottom:4px; }
+    .recent { margin-top: 12px; }
+    .entry { border-bottom: 1px solid #e2e8f0; padding: 10px 0; }
+    .flex { display: flex; gap: 12px; }
+    .count { font-size: 13px; margin-left: 6px; }
+    .status { margin-top: 8px; }
+    .error { color: #b91c1c; }
+    .success { color: #166534; }
+  </style>
+</head>
+<body>
+
+  <h1>Admin Notification Center</h1>
+
+  <div class="panel">
+    <div class="card">
+      <h2>Users & Selection</h2>
+      <div>
+        <label for="search-input">Filter users (by uname or email)</label>
+        <input type="text" id="search-input" placeholder="Search user..." autocomplete="off" />
+      </div>
+
+      <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <button id="select-all-btn">Select All Filtered</button>
+        <button id="clear-selection-btn" class="secondary">Clear Selection</button>
+        <div class="count" id="selected-count">0 selected</div>
+      </div>
+
+      <div class="small">Click a user to toggle selection.</div>
+      <div class="user-list" id="user-list">Loading users...</div>
+
+      <div class="small" style="margin-top:12px;">Selected user unames:</div>
+      <div id="selected-ids" class="small" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Compose Notification</h2>
+      <div id="feedback" class="small"></div>
+
+      <label for="title">Title</label>
+      <input type="text" id="title" placeholder="Notification title" />
+
+      <label for="message">Message</label>
+      <textarea id="message" rows="4" placeholder="Notification message"></textarea>
+
+      <label for="link">Link (optional)</label>
+      <input type="text" id="link" placeholder="/some/path or https://..." />
+
+      <label for="type">Type</label>
+      <select id="type">
+        <option value="info">Info</option>
+        <option value="alert">Alert</option>
+        <option value="system">System</option>
+      </select>
+
+      <div style="margin-top:16px;">
+        <button id="send-btn">Send Notification</button>
+      </div>
+      <div class="status" id="send-status"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Recent Sends</h2>
+    <div id="recent" class="recent">
+      No notifications sent yet.
+    </div>
+  </div>
+
+  <script>
+    let allUsers = [];
+    let filteredUsers = [];
+    const selectedUnames = new Set(); // only unames
+    const userMap = new Map(); // uname -> user object (contains uname, email)
+
+    const userListEl = document.getElementById('user-list');
+    const searchInput = document.getElementById('search-input');
+    const selectedIdsEl = document.getElementById('selected-ids');
+    const selectedCountEl = document.getElementById('selected-count');
+    const feedbackEl = document.getElementById('feedback');
+    const recentEl = document.getElementById('recent');
+    const sendStatusEl = document.getElementById('send-status');
+
+    function renderUsers(list) {
+      userListEl.innerHTML = '';
+      if (list.length === 0) {
+        userListEl.textContent = 'No users match filter.';
+        return;
+      }
+      list.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'user-item' + (selectedUnames.has(u.uname) ? ' selected' : '');
+        div.dataset.uname = u.uname;
+        div.innerHTML = '<div style="flex:1;"><strong>' + u.uname + '</strong> (' + u.email + ')</div>';
+        div.addEventListener('click', () => {
+          if (selectedUnames.has(u.uname)) {
+            selectedUnames.delete(u.uname);
+          } else {
+            selectedUnames.add(u.uname);
+          }
+          updateSelectionDisplay();
+          renderUsers(filteredUsers);
+        });
+        userListEl.appendChild(div);
+      });
+    }
+
+    function updateSelectionDisplay() {
+      selectedIdsEl.innerHTML = '';
+      if (selectedUnames.size === 0) {
+        selectedIdsEl.textContent = 'None';
+      } else {
+        selectedUnames.forEach(uname => {
+          const span = document.createElement('div');
+          span.className = 'badge';
+          span.textContent = uname;
+          selectedIdsEl.appendChild(span);
+        });
+      }
+      selectedCountEl.textContent = selectedUnames.size + ' selected';
+    }
+
+    function applyFilter() {
+      const term = searchInput.value.trim().toLowerCase();
+      if (!term) {
+        filteredUsers = allUsers.slice();
+      } else {
+        filteredUsers = allUsers.filter(u =>
+          (u.uname && u.uname.toLowerCase().includes(term)) ||
+          (u.email && u.email.toLowerCase().includes(term))
+        );
+      }
+      renderUsers(filteredUsers);
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/users'); // adjust if your route base is different
+        if (!res.ok) throw new Error('Failed to fetch users');
+        const users = await res.json();
+        allUsers = users;
+        filteredUsers = allUsers.slice();
+        users.forEach(u => userMap.set(u.uname, u));
+        renderUsers(filteredUsers);
+        updateSelectionDisplay();
+      } catch (e) {
+        userListEl.textContent = 'Could not load users.';
+        console.error(e);
+      }
+    }
+
+    document.getElementById('select-all-btn').addEventListener('click', () => {
+      filteredUsers.forEach(u => selectedUnames.add(u.uname));
+      updateSelectionDisplay();
+      renderUsers(filteredUsers);
+    });
+
+    document.getElementById('clear-selection-btn').addEventListener('click', () => {
+      selectedUnames.clear();
+      updateSelectionDisplay();
+      renderUsers(filteredUsers);
+    });
+
+    searchInput.addEventListener('input', applyFilter);
+
+    document.getElementById('send-btn').addEventListener('click', async () => {
+      feedbackEl.textContent = '';
+      sendStatusEl.textContent = '';
+      const title = document.getElementById('title').value.trim();
+      const message = document.getElementById('message').value.trim();
+      const link = document.getElementById('link').value.trim();
+      const type = document.getElementById('type').value;
+      const userNames = Array.from(selectedUnames); // unames only
+
+      if (userNames.length === 0) {
+        feedbackEl.textContent = 'Select at least one user.';
+        feedbackEl.className = 'error';
+        return;
+      }
+      if (!title || !message) {
+        feedbackEl.textContent = 'Title and message required.';
+        feedbackEl.className = 'error';
+        return;
+      }
+
+      document.getElementById('send-btn').disabled = true;
+      feedbackEl.textContent = '';
+      sendStatusEl.textContent = 'Sending...';
+      sendStatusEl.className = '';
+
+      try {
+        const resp = await fetch('/admin/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userNames, // names instead of IDs
+            title,
+            message,
+            link: link || undefined,
+            type
+          })
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          sendStatusEl.textContent = 'Sent to ' + data.sent + ' users.';
+          sendStatusEl.className = 'success';
+          addRecent({ userNames, title, message, type }, data);
+        } else {
+          sendStatusEl.textContent = data.error || 'Failed to send.';
+          sendStatusEl.className = 'error';
+          addRecent({ userNames, title, message, type }, { success: false, error: data.error });
+        }
+      } catch (e) {
+        sendStatusEl.textContent = 'Network error.';
+        sendStatusEl.className = 'error';
+        addRecent({ userNames, title, message, type }, { success: false, error: 'Network error' });
+      } finally {
+        document.getElementById('send-btn').disabled = false;
+      }
+    });
+
+    function addRecent(payload, result) {
+      const entry = document.createElement('div');
+      entry.className = 'entry';
+      const now = new Date().toLocaleString();
+
+      entry.innerHTML = `
+        <div><strong>Title:</strong> ${payload.title}</div>
+        <div><strong>Users:</strong> ${payload.userNames.join(', ')}</div>
+        <div><strong>Type:</strong> ${payload.type}</div>
+        <div><strong>Result:</strong> ${
+          result.success
+            ? '<span class="success">Sent to ' + result.sent + '</span>'
+            : '<span class="error">' + (result.error || 'Failed') + '</span>'
+        }</div>
+        <div class="small">at ${now}</div>
+      `;
+      recentEl.prepend(entry);
+    }
+
+    window.addEventListener('DOMContentLoaded', loadUsers);
+  </script>
+</body>
+</html>

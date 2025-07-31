@@ -1,75 +1,104 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const NotificationService = require('../services/notificationService');
-const requireLogin = require('../middleware/requireLogin');
+const Notification = require('../models/Notification');
+const User = require('../models/User'); // <--- added
 
-// Register FCM token
-router.post('/register-token', requireLogin, async (req, res) => {
+
+
+// Admin: send notifications by userIds or userNames
+// Mounted at /admin/notifications if used as app.use('/admin', router)
+router.post('/notifications',  async (req, res) => {
   try {
-    const { token, device } = req.body;
-    const username = req.session.user.uname;
+    let { userIds, userNames, title, message, link, type } = req.body;
 
-    if (!token) {
-      return res.status(400).json({ success: false, error: 'Token is required' });
+    if (!title || !message) {
+      return res.status(400).json({ error: 'title and message are required' });
     }
 
-    const user = await User.findOne({ uname: username });
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+    let targetIds = [];
+
+    if (Array.isArray(userIds) && userIds.length > 0) {
+      targetIds = userIds;
+    } else if (Array.isArray(userNames) && userNames.length > 0) {
+      const users = await User.find({ uname: { $in: userNames } }).select('_id');
+      targetIds = users.map(u => u._id);
     }
 
-    // Update or add token
-    const existingToken = user.fcmTokens.find(t => t.token === token);
-    if (existingToken) {
-      existingToken.isActive = true;
-      existingToken.device = device || 'web';
-    } else {
-      user.fcmTokens.push({
-        token,
-        device: device || 'web',
-        isActive: true
-      });
+    if (targetIds.length === 0) {
+      return res.status(400).json({ error: 'No valid users provided' });
     }
 
-    await user.save();
-    res.json({ success: true, message: 'Token registered successfully' });
+    const docs = targetIds.map(uid => ({
+      userId: uid,
+      title,
+      message,
+      link,
+      type: type || 'info',
+      read: false
+    }));
 
-  } catch (error) {
-    console.error('❌ Token registration error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    await Notification.insertMany(docs);
+    res.json({ success: true, sent: targetIds.length });
+  } catch (err) {
+    console.error('Error creating notifications:', err);
+    res.status(500).json({ error: 'Failed to send notifications' });
   }
 });
 
-// Test notification
-router.post('/test', requireLogin, async (req, res) => {
+// Admin: list all notifications (with user info)
+router.get('/notifications/list',  async (req, res) => {
   try {
-    const username = req.session.user.uname;
-    const result = await NotificationService.sendToUser(username, {
-      title: '🔔 Test Notification',
-      body: 'Firebase notifications are working perfectly!',
-      type: 'test'
-    });
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    const notes = await Notification.find()
+      .sort({ createdAt: -1 })
+      .populate({ path: 'userId', select: 'uname email' })
+      .lean();
+
+    const formatted = notes.map(n => ({
+      _id: n._id,
+      title: n.title,
+      message: n.message,
+      link: n.link,
+      type: n.type,
+      read: n.read,
+      createdAt: n.createdAt,
+      user: n.userId
+        ? { id: n.userId._id, uname: n.userId.uname, email: n.userId.email }
+        : null
+    }));
+
+    res.json({ notifications: formatted });
+  } catch (err) {
+    console.error('Failed to fetch notifications:', err);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
   }
 });
 
-// Update notification preferences
-router.put('/preferences', requireLogin, async (req, res) => {
+// User: get their own notifications
+router.get('/notifications',  async (req, res) => {
   try {
-    const username = req.session.user.uname;
-    const preferences = req.body;
+    const notes = await Notification.find({ userId: req.session.userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({ notifications: notes });
+  } catch (err) {
+    console.error('Failed to load notifications:', err);
+    res.status(500).json({ error: 'Failed to load notifications' });
+  }
+});
 
-    await User.updateOne(
-      { uname: username },
-      { $set: { notificationSettings: preferences } }
+// User: mark a notification read
+router.put('/notifications/:id/read',  async (req, res) => {
+  try {
+    const note = await Notification.findOneAndUpdate(
+      { _id: req.params.id, userId: req.session.userId },
+      { read: true },
+      { new: true }
     );
-
-    res.json({ success: true, message: 'Preferences updated successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    if (!note) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Could not update notification:', err);
+    res.status(500).json({ error: 'Could not update' });
   }
 });
 

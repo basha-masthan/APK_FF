@@ -9,9 +9,9 @@ const Game = require('../models/games');
 
 // ✅ GET all users (admin only)
 router.get('/', async (req, res) => {
-  if (!req.session.admin) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  // if (!req.session.admin) {
+  //   return res.status(401).json({ error: 'Unauthorized' });
+  // }
 
   const users = await User.find();
   res.json(users);
@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
     // 🔍 Check if email already exists
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
-      return res.status(400).json({ error: 'Email is already registered' });
+      return res.status(400).json({ error: 'Mobile is already registered' });
     }
 
     // ✅ Create and save the new user

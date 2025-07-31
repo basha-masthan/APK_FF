@@ -8,8 +8,177 @@
 </head>
 <body class="bg-gray-950 text-white min-h-screen py-10 px-4">
 
+  
+
+
+<!-- Notification Icon (stay in layout) -->
+<div class="relative flex justify-end m-2 " style="margin-top: -3vh;">
+  <button id="notif-icon" aria-label="Notifications"
+    class="relative p-2 text-2xl rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    🔔
+    <span id="notif-badge" aria-live="polite"
+      class="absolute -top-3 -right-1 bg-red-500 text-white rounded-full text-xs font-semibold px-2 min-w-[22px] text-center hidden">
+    </span>
+  </button>
+</div>
+
+
+<script>
+  let currentNotifications = [];
+
+  const badgeEl = document.getElementById('notif-badge');
+  const bell = document.getElementById('notif-icon');
+
+  // Create the floating dropdown & inject into body
+  const listContainer = document.createElement('div');
+  listContainer.id = 'notif-list';
+  listContainer.className = `
+    hidden w-80 max-h-[420px] flex-col bg-white border border-slate-200
+    rounded-xl shadow-2xl overflow-hidden absolute z-[9999]
+    opacity-0 transform translate-y-2 transition-all duration-200
+  `;
+
+  listContainer.innerHTML = `
+    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+      <div class="text-sm text-blue-700 font-semibold">Notifications</div>
+      <button id="mark-all-read" class="text-xs text-indigo-600 hover:underline focus:outline-none">Mark all read</button>
+    </div>
+    <div id="notif-items" class="text-blue-700 overflow-y-auto max-h-[300px]">
+      <div id="empty-placeholder" class="px-4 py-6 text-center text-sm text-slate-500">
+        No notifications.
+      </div>
+    </div>
+    <div class="px-4 py-2 text-[11px] text-center bg-slate-50">
+      Click a notification to open / mark read.
+    </div>
+  `;
+  document.body.appendChild(listContainer);
+
+  const itemsWrapper = listContainer.querySelector('#notif-items');
+  const emptyPlaceholder = listContainer.querySelector('#empty-placeholder');
+  const markAllBtn = listContainer.querySelector('#mark-all-read');
+
+  // Position dropdown under the bell (absolute to screen)
+  function positionDropdown() {
+    const rect = bell.getBoundingClientRect();
+    listContainer.style.top = `${rect.bottom + 6 + window.scrollY}px`;
+    listContainer.style.left = `${rect.right - 320 + window.scrollX}px`; // 320 = width
+  }
+
+  function showPopup() {
+    positionDropdown();
+    listContainer.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      listContainer.classList.remove('opacity-0', 'translate-y-2');
+      listContainer.classList.add('opacity-100', 'translate-y-0');
+    });
+  }
+
+  function hidePopup() {
+    listContainer.classList.add('opacity-0', 'translate-y-2');
+    listContainer.classList.remove('opacity-100', 'translate-y-0');
+    setTimeout(() => {
+      listContainer.classList.add('hidden');
+    }, 200);
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!listContainer.contains(e.target) && !bell.contains(e.target)) {
+      hidePopup();
+    }
+  });
+
+  bell.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!listContainer.classList.contains('hidden')) {
+      hidePopup();
+    } else {
+      await loadFullNotifications();
+      showPopup();
+    }
+  });
+
+  function updateBadgeCount() {
+    const unread = currentNotifications.filter(n => !n.read).length;
+    badgeEl.innerText = unread > 0 ? unread : '';
+    badgeEl.classList.toggle('hidden', unread === 0);
+  }
+
+  async function loadNotificationsPreview() {
+    const resp = await fetch('/not/notifications');
+    const data = await resp.json();
+    currentNotifications = data.notifications || [];
+    updateBadgeCount();
+  }
+
+  async function loadFullNotifications() {
+    const resp = await fetch('/not/notifications');
+    const data = await resp.json();
+    currentNotifications = data.notifications || [];
+    renderList();
+    updateBadgeCount();
+  }
+
+  function renderList() {
+    itemsWrapper.innerHTML = '';
+    if (currentNotifications.length === 0) {
+      itemsWrapper.appendChild(emptyPlaceholder);
+      return;
+    }
+
+    currentNotifications.forEach(n => {
+      const item = document.createElement('div');
+      item.className = `flex flex-col px-4 py-3 border-b border-slate-100 cursor-pointer ${n.read ? '' : 'bg-sky-50'}`;
+      item.innerHTML = `
+        <div class="flex justify-between items-start">
+          <div class="text-sm font-medium">${n.title || 'No title'}</div>
+          ${!n.read ? '<div class="text-[10px] bg-indigo-600 text-white rounded-full px-2 py-[2px] font-semibold ml-2">NEW</div>' : ''}
+        </div>
+        <p class="text-xs mt-1 text-slate-700">${n.message || ''}</p>
+        <div class="text-[11px] text-slate-500 mt-1">${new Date(n.createdAt).toLocaleString()}</div>
+      `;
+
+      item.addEventListener('click', async () => {
+        if (!n.read) {
+          await fetch(`/not/notifications/${n._id}/read`, { method: 'PUT' });
+          n.read = true;
+          updateBadgeCount();
+          renderList();
+        }
+        if (n.link) window.location.href = n.link;
+      });
+
+      itemsWrapper.appendChild(item);
+    });
+  }
+
+  markAllBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await Promise.all(currentNotifications.map(async n => {
+      if (!n.read) {
+        await fetch(`/not/notifications/${n._id}/read`, { method: 'PUT' });
+        n.read = true;
+      }
+    }));
+    renderList();
+    updateBadgeCount();
+  });
+
+  window.addEventListener('resize', () => {
+    if (!listContainer.classList.contains('hidden')) positionDropdown();
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadNotificationsPreview();
+    setInterval(loadNotificationsPreview, 30000);
+  });
+</script>
+
+
   <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 px-4">
-  <div class="relative w-full md:w-auto z-50">
+
+
+    <div class=" w-full md:w-auto z-50">
     <button id="userMenuBtn" class="w-full md:w-auto inline-flex justify-between items-center bg-gray-800 text-white px-4 py-2 rounded-md shadow-md hover:bg-gray-700 transition duration-300 text-sm font-medium">
       <span id="usernameDisplay">User</span>
       <svg class="ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
@@ -41,6 +210,10 @@
   </div>
 </div>
 
+
+
+
+
 <script>
   const othersBtn = document.getElementById('othersToggleBtn');
   const othersAccordion = document.getElementById('othersAccordion');
@@ -68,7 +241,7 @@
     </div>
   </div>
  <div class="w-full md:w-auto inline-flex justify-between items-center bg-gray-800 text-white px-4 py-2 rounded-md shadow-md hover:bg-gray-700 transition duration-300 text-sm font-medium">
-      <button onclick="navigatetowallet();"><h2 id="totalHeading" class="text-l font-bold text-green-400 p-1">Total Balance: 🪙0</h2></button>
+      <a href="/wallet.html"><button ><h2 id="totalHeading" class="text-l font-bold text-green-400 p-1">Total Balance: 🪙0</h2></button></a>
     </div>
 
 </header>
@@ -100,7 +273,7 @@
         <div class="bg-gray-800 p-4 rounded-lg">
           <h3 class="text-green-400 font-bold mb-2">🎮 Gameplay Instructions:</h3>
           <ul class="space-y-1 text-xs">
-            <li>• Room ID and Password will be shared 10 minutes before start <br> <b style="color: yellow;">* At my matches page (Navigate through Menu bar) </b> </li>
+            <li>• Room ID and Password will be shared 10 minutes before start <br> <b style="color: yellow;">• At my matches page (Navigate through Menu bar) </b> <br> <span class="font-bold">• For Squard Matches Choose teams in <span class="underline decoration-wavy">Chat Support Section</span> </span>  </li>
             <li>• Join the custom room using provided credentials</li>
             <li>• Wait for match coordinator's signal to start</li>
             <li>• Play until the last circle - no early exits allowed</li>
@@ -134,7 +307,6 @@
       </div>
     </div>
   </div>
-
   <!-- Booking Confirmation Modal (Second Step) -->
   <div id="bookingModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
     <div class="bg-gray-900 rounded-xl px-6 py-8 shadow-lg w-full max-w-md border border-green-700">
@@ -430,7 +602,11 @@
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
-                <p><strong>Status:</strong> <span class="font-semibold text-blue-600">${t.status}</span></p>
+
+                <div class="flex  justify-between">
+                  <div><p>Match ID :<strong> ${t.tournamentId || 'Unknown Tournament'}  </p></div>
+                  <div><p>Status:</strong> <span class="font-semibold text-blue-600">${t.status}</span> </p></div>
+                </div>
                 <p><strong>Start Time:</strong> <span class="text-red-600 font-semibold">${formattedStart}</span></p>
               </div>
 
@@ -479,6 +655,151 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 });
 
   </script>
+
+
+
+
+
+
+
+
+
+
+
+<!-- ================== -->
+<!-- Floating Chat Button -->
+<button id="chatToggleBtn" class="fixed bottom-5 right-5 bg-yellow-500 hover:bg-yellow-600 text-black font-bold p-3 rounded-full shadow-lg z-50">
+  💬
+</button>
+
+<!-- Chat Support Box -->
+<div id="chatBox" class="fixed bottom-20 right-5 bg-gray-900 text-white w-80 max-w-sm p-5 rounded-xl shadow-lg hidden z-50">
+  <h2 class="text-xl font-bold mb-3">💬 Chat Support</h2>
+
+  <!-- Step 1: Topic Selection -->
+  <div class="mb-4">
+    <label for="supportTopic" class="block text-sm mb-2">Select your issue:</label>
+    <select id="supportTopic" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white">
+      <option value="">-- Choose an option --</option>
+      <option value="tournament">🎯 Tournament Registration</option>
+      <option value="deposit">💰 Money Deposit</option>
+      <option value="squad">🛡️ Squad Match Group Selection</option>
+    </select>
+  </div>
+
+  <!-- Step 2: Squad Group Selection -->
+  <div id="squadSelection" class="hidden space-y-3 border-t border-gray-700 pt-3">
+    <div>
+      <label for="tournamentIdInput" class="text-sm">Tournament ID:</label>
+      <input id="tournamentIdInput" type="text" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm" />
+    </div>
+
+    <div>
+      <label for="unameInput" class="text-sm">Username:</label>
+      <input id="unameInput" type="text" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm" />
+    </div>
+
+    <button onclick="verifySquadEligibility()" class="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-4 py-2 rounded w-full">
+      🔍 Verify & Choose Group
+    </button>
+
+    <div id="groupPoolSection" class="hidden">
+      <h3 class="text-sm font-semibold mt-2">Select Group:</h3>
+      <div class="flex space-x-2 mt-2">
+        <button onclick="selectGroup('A')" class="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm">Group A</button>
+        <button onclick="selectGroup('B')" class="flex-1 bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm">Group B</button>
+      </div>
+      <p id="groupStatus" class="text-xs text-gray-300 mt-2"></p>
+    </div>
+  </div>
+</div>
+
+
+<script>
+
+  const chatBtn = document.getElementById("chatToggleBtn");
+  const chatBox = document.getElementById("chatBox");
+
+  chatBtn.addEventListener("click", () => {
+    chatBox.classList.toggle("hidden");
+  });
+
+  // Show squad group selection logic
+  document.getElementById("supportTopic").addEventListener("change", function () {
+    const squadSection = document.getElementById("squadSelection");
+    if (this.value === "squad") {
+      squadSection.classList.remove("hidden");
+    } else {
+      squadSection.classList.add("hidden");
+    }
+  });
+
+
+document.getElementById("supportTopic").addEventListener("change", function () {
+  const squadSection = document.getElementById("squadSelection");
+  if (this.value === "squad") {
+    squadSection.classList.remove("hidden");
+  } else {
+    squadSection.classList.add("hidden");
+  }
+});
+
+async function verifySquadEligibility() {
+  const tournamentId = document.getElementById("tournamentIdInput").value.trim();
+
+  if (!tournamentId) {
+    alert("Please enter Tournament ID.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`/support/squad-group/${tournamentId}`);
+    if (!res.ok) {
+      alert("❌ Tournament not found or not upcoming.");
+      return;
+    }
+
+    const data = await res.json();
+
+    // Show group pool section
+    document.getElementById("groupPoolSection").classList.remove("hidden");
+
+    document.getElementById("groupStatus").innerHTML = `
+      🧑‍🤝‍🧑 <strong>${data.A.length}</strong> players in Group A<br>
+      🧑‍🤝‍🧑 <strong>${data.B.length}</strong> players in Group B
+    `;
+  } catch (err) {
+    alert("❌ Error verifying group data.");
+    console.error(err);
+  }
+}
+
+async function selectGroup(group) {
+  const tournamentId = document.getElementById("tournamentIdInput").value.trim();
+  const uname = document.getElementById("unameInput").value.trim();
+  const freeFireId = prompt("Please enter your Free Fire ID:");
+
+  if (!tournamentId || !uname || !freeFireId) {
+    alert("All fields are required.");
+    return;
+  }
+
+  const res = await fetch(`/support/squad-group`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tournamentId, uname, freeFireId, group }),
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    alert("✅ Group " + group + " selected successfully.");
+  } else {
+    alert("❌ " + (data.error || "Failed to assign group."));
+  }
+}
+</script>
+
+
 
 </body>
 </html>
