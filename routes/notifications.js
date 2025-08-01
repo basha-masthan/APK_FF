@@ -105,7 +105,7 @@ router.put('/notifications/:id/read', async (req, res) => {
   }
 });
 
-router.put('/notifications/mark-all-read', async (req, res) => {
+router.post('/notifications/mark-all-read', async (req, res) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ error: 'Unauthenticated' });

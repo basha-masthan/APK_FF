@@ -184,7 +184,7 @@
     e.stopPropagation();
     try {
       const resp = await fetch('/not/notifications/mark-all-read', {
-        method: 'PUT',
+        method: 'POST',
         credentials: 'include'
       });
       if (resp.ok) {
