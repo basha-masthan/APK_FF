@@ -25,6 +25,8 @@
 
 <script>
   let currentNotifications = [];
+  let sseRetryDelay = 1000;
+  let eventSource;
 
   const badgeEl = document.getElementById('notif-badge');
   const bell = document.getElementById('notif-icon');
@@ -72,6 +74,8 @@
       listContainer.classList.remove('opacity-0', 'translate-y-2');
       listContainer.classList.add('opacity-100', 'translate-y-0');
     });
+    // load fresh when opening
+    loadFullNotifications();
   }
 
   function hidePopup() {
@@ -93,7 +97,6 @@
     if (!listContainer.classList.contains('hidden')) {
       hidePopup();
     } else {
-      await loadFullNotifications();
       showPopup();
     }
   });
@@ -104,24 +107,44 @@
     badgeEl.classList.toggle('hidden', unread === 0);
   }
 
+  async function fetchNotifications() {
+    try {
+      const resp = await fetch('/not/notifications', { credentials: 'include' });
+      if (resp.status === 401) {
+        currentNotifications = [];
+        updateBadgeCount();
+        renderList();
+        return;
+      }
+      const data = await resp.json();
+      if (Array.isArray(data.notifications)) {
+        // Merge: preserve read state if already updated locally
+        const byId = new Map(currentNotifications.map(n => [n._id, n]));
+        currentNotifications = data.notifications.map(n => {
+          if (byId.has(n._id)) {
+            return { ...n, read: byId.get(n._id).read };
+          }
+          return n;
+        });
+        updateBadgeCount();
+      }
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
+  }
+
   async function loadNotificationsPreview() {
-    const resp = await fetch('/not/notifications');
-    const data = await resp.json();
-    currentNotifications = data.notifications || [];
-    updateBadgeCount();
+    await fetchNotifications();
   }
 
   async function loadFullNotifications() {
-    const resp = await fetch('/not/notifications');
-    const data = await resp.json();
-    currentNotifications = data.notifications || [];
+    await fetchNotifications();
     renderList();
-    updateBadgeCount();
   }
 
   function renderList() {
     itemsWrapper.innerHTML = '';
-    if (currentNotifications.length === 0) {
+    if (!currentNotifications || currentNotifications.length === 0) {
       itemsWrapper.appendChild(emptyPlaceholder);
       return;
     }
@@ -131,19 +154,24 @@
       item.className = `flex flex-col px-4 py-3 border-b border-slate-100 cursor-pointer ${n.read ? '' : 'bg-sky-50'}`;
       item.innerHTML = `
         <div class="flex justify-between items-start">
-          <div class="text-sm font-medium">${n.title || 'No title'}</div>
+          <div class="text-sm font-medium">${escapeHtml(n.title || 'No title')}</div>
           ${!n.read ? '<div class="text-[10px] bg-indigo-600 text-white rounded-full px-2 py-[2px] font-semibold ml-2">NEW</div>' : ''}
         </div>
-        <p class="text-xs mt-1 text-slate-700">${n.message || ''}</p>
+        <p class="text-xs mt-1 text-slate-700">${escapeHtml(n.message || '')}</p>
         <div class="text-[11px] text-slate-500 mt-1">${new Date(n.createdAt).toLocaleString()}</div>
       `;
 
       item.addEventListener('click', async () => {
         if (!n.read) {
-          await fetch(`/not/notifications/${n._id}/read`, { method: 'PUT' });
-          n.read = true;
-          updateBadgeCount();
-          renderList();
+          const putResp = await fetch(`/not/notifications/${n._id}/read`, {
+            method: 'PUT',
+            credentials: 'include'
+          });
+          if (putResp.ok) {
+            n.read = true;
+            updateBadgeCount();
+            renderList();
+          }
         }
         if (n.link) window.location.href = n.link;
       });
@@ -154,25 +182,83 @@
 
   markAllBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
-    await Promise.all(currentNotifications.map(async n => {
-      if (!n.read) {
-        await fetch(`/not/notifications/${n._id}/read`, { method: 'PUT' });
-        n.read = true;
+    try {
+      const resp = await fetch('/not/notifications/mark-all-read', {
+        method: 'PUT',
+        credentials: 'include'
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        currentNotifications = data.notifications || [];
+        updateBadgeCount();
+        renderList();
       }
-    }));
-    renderList();
-    updateBadgeCount();
+    } catch (err) {
+      console.error('Failed to mark all read:', err);
+    }
   });
 
   window.addEventListener('resize', () => {
     if (!listContainer.classList.contains('hidden')) positionDropdown();
   });
 
+  function startSSE() {
+    if (eventSource) eventSource.close();
+    eventSource = new EventSource('/not/notifications/stream', { withCredentials: true });
+
+    eventSource.onmessage = (e) => {
+      try {
+        const payload = JSON.parse(e.data);
+        // Expected to be { type: 'update', notifications: [...] } or a single notification
+        if (Array.isArray(payload.notifications)) {
+          currentNotifications = payload.notifications;
+        } else if (payload.notification) {
+          // upsert single
+          const idx = currentNotifications.findIndex(n => n._id === payload.notification._id);
+          if (idx >= 0) currentNotifications[idx] = payload.notification;
+          else currentNotifications.unshift(payload.notification);
+        }
+        updateBadgeCount();
+        // if dropdown open, refresh list
+        if (!listContainer.classList.contains('hidden')) renderList();
+        // reset retry delay on success
+        sseRetryDelay = 1000;
+      } catch (err) {
+        console.error('Invalid SSE payload', err);
+      }
+    };
+
+    eventSource.onerror = () => {
+      console.warn('SSE connection error, retrying in', sseRetryDelay);
+      eventSource.close();
+      setTimeout(() => {
+        sseRetryDelay = Math.min(30000, sseRetryDelay * 1.5);
+        startSSE();
+      }, sseRetryDelay);
+    };
+  }
+
+  // simple HTML escaping to avoid injection
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, function (m) {
+      return ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[m];
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     loadNotificationsPreview();
+    startSSE();
+    // fallback polling every 30s in case SSE misses something
     setInterval(loadNotificationsPreview, 30000);
   });
 </script>
+
 
 
   <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 px-4">

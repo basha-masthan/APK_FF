@@ -6,6 +6,8 @@ const path = require('path');
 const Razorpay = require('razorpay');
 const morgan = require('morgan');
 const requireLogin = require('./middleware/requireLogin');
+const MongoStore = require('connect-mongo');
+const resolveUserId = require('./middleware/resolveUserId');
 
 dotenv.config();
 const app = express();

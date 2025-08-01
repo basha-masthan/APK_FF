@@ -73,9 +73,15 @@ router.get('/notifications/list',  async (req, res) => {
   }
 });
 
-// User: get their own notifications
-router.get('/notifications',  async (req, res) => {
+// routes/notifications.js
+
+
+router.get('/notifications', async (req, res) => {
   try {
+    if (!req.session?.userId) {
+      console.warn('Missing userId in session for notifications fetch.');
+      return res.json({ notifications: [] });
+    }
     const notes = await Notification.find({ userId: req.session.userId })
       .sort({ createdAt: -1 })
       .lean();
@@ -86,20 +92,19 @@ router.get('/notifications',  async (req, res) => {
   }
 });
 
-// User: mark a notification read
-router.put('/notifications/:id/read',  async (req, res) => {
+router.put('/notifications/:id/read', async (req, res) => {
   try {
     const note = await Notification.findOneAndUpdate(
       { _id: req.params.id, userId: req.session.userId },
-      { read: true },
+      { $set: { read: true } },
       { new: true }
     );
-    if (!note) return res.status(404).json({ error: 'Not found' });
-    res.json({ success: true });
+    res.json({ success: !!note });
   } catch (err) {
-    console.error('Could not update notification:', err);
-    res.status(500).json({ error: 'Could not update' });
+    res.status(500).json({ error: 'Failed to mark as read' });
   }
 });
+
+
 
 module.exports = router;
