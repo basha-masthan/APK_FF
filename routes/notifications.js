@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 const User = require('../models/User'); // <--- added
+const { addClient, removeClient, sendToUser } = require('../utils/sseManager');
+
 
 
 
@@ -105,23 +107,37 @@ router.put('/notifications/:id/read', async (req, res) => {
   }
 });
 
-router.post('/notifications/mark-all-read', async (req, res) => {
+router.put('/notifications/mark-all-read', async (req, res) => {
   try {
     if (!req.session?.userId) {
+      console.warn('PUT /not/notifications/mark-all-read without userId in session');
       return res.status(401).json({ error: 'Unauthenticated' });
     }
-    await Notification.updateMany(
-      { userId: req.session.userId, read: false },
+
+    const userId = req.session.userId;
+
+    // Update all unread notifications for this user
+    const updateResult = await Notification.updateMany(
+      { userId, read: false },
       { $set: { read: true } }
     );
-    const updated = await Notification.find({ userId: req.session.userId })
+    console.log('mark-all-read updateResult:', updateResult);
+
+    // Fetch updated list
+    const updated = await Notification.find({ userId })
       .sort({ createdAt: -1 })
       .lean();
-    sendToUser(req.session.userId, { notifications: updated });
-    res.json({ notifications: updated });
+
+    // Push updated list to SSE clients
+    sendToUser(userId, { notifications: updated });
+
+    return res.json({ notifications: updated });
   } catch (err) {
-    console.error('Failed to mark all read:', err);
-    res.status(500).json({ error: 'Failed to update' });
+    console.error('Failed to mark all read (detailed):', err);
+    return res.status(500).json({
+      error: 'Failed to update',
+      details: err.message
+    });
   }
 });
 

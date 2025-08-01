@@ -43,7 +43,7 @@
   listContainer.innerHTML = `
     <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
       <div class="text-sm text-blue-700 font-semibold">Notifications</div>
-      <button id="mark-all-read" class="text-xs text-indigo-600 hover:underline focus:outline-none">Mark all read</button>
+      <button id="mark-all-read"  class="text-xs text-indigo-600 hover:underline focus:outline-none">Mark all read</button>
     </div>
     <div id="notif-items" class="text-blue-700 overflow-y-auto max-h-[300px]">
       <div id="empty-placeholder" class="px-4 py-6 text-center text-sm text-slate-500">
@@ -180,23 +180,26 @@
     });
   }
 
-  markAllBtn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    try {
-      const resp = await fetch('/not/notifications/mark-all-read', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        currentNotifications = data.notifications || [];
-        updateBadgeCount();
-        renderList();
-      }
-    } catch (err) {
-      console.error('Failed to mark all read:', err);
+markAllBtn.addEventListener('click', async (e) => {
+  e.stopPropagation();
+  try {
+    const resp = await fetch('/not/notifications/mark-all-read', {
+      method: 'PUT',
+      credentials: 'include'
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      currentNotifications = data.notifications || [];
+      updateBadgeCount();
+      renderList();
+    } else {
+      const errBody = await resp.text();
+      console.warn('mark-all-read failed status', resp.status, errBody);
     }
-  });
+  } catch (err) {
+    console.error('Failed to mark all read (frontend):', err);
+  }
+});
 
   window.addEventListener('resize', () => {
     if (!listContainer.classList.contains('hidden')) positionDropdown();
