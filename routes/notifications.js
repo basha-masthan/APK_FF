@@ -105,6 +105,26 @@ router.put('/notifications/:id/read', async (req, res) => {
   }
 });
 
+router.put('/notifications/mark-all-read', async (req, res) => {
+  try {
+    if (!req.session?.userId) {
+      return res.status(401).json({ error: 'Unauthenticated' });
+    }
+    await Notification.updateMany(
+      { userId: req.session.userId, read: false },
+      { $set: { read: true } }
+    );
+    const updated = await Notification.find({ userId: req.session.userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    sendToUser(req.session.userId, { notifications: updated });
+    res.json({ notifications: updated });
+  } catch (err) {
+    console.error('Failed to mark all read:', err);
+    res.status(500).json({ error: 'Failed to update' });
+  }
+});
+
 
 
 module.exports = router;
