@@ -85,10 +85,11 @@
               const statusEl = document.getElementById(`status-${match._id}`);
               statusEl.textContent = "⏳ Uploading...";
               try {
-                const res = await fetch('/games/upload-screenshot/${match._id}', {
+                  const res = await fetch(`/games/upload-screenshot/${match._id}`, {
                   method: 'POST',
                   body: formData
                 });
+
                 const data = await res.json();
                 if (data.success) {
                   statusEl.textContent = "✅ Screenshot uploaded!";
