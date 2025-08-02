@@ -66,6 +66,24 @@ router.delete('/:id', async (req, res) => {
 });
 
 
+const upload = require('../middleware/cloudinaryUpload');
+const MatchRegistration = require('../models/MatchRegistration');
+
+// 👇 Upload dashboard screenshot after match
+router.post('/upload-screenshot/:registrationId', upload.single('screenshot'), async (req, res) => {
+  try {
+    const registration = await MatchRegistration.findById(req.params.registrationId);
+    if (!registration) return res.status(404).json({ error: 'Not found' });
+
+    registration.screenshotUrl = req.file.path;
+    await registration.save();
+    res.json({ success: true, url: req.file.path });
+  } catch (err) {
+    res.status(500).json({ error: 'Upload failed' });
+  }
+});
+
+
 
 
 module.exports = router;

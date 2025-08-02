@@ -136,6 +136,11 @@ const attachNotificationCount = require('./middleware/notifications');
 app.use(attachNotificationCount);
 
 
+const ocrRoutes = require('./routes/ocr'); 
+app.use('/ocr', ocrRoutes);
+
+
+
 
 const PORT = process.env.PORT || 5555;
 app.listen(PORT, () => {

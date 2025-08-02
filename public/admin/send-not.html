@@ -38,6 +38,17 @@
         <input type="text" id="search-input" placeholder="Search user..." autocomplete="off" />
       </div>
 
+      <label for="tournament-select">Tournament</label>
+<select id="tournament-select">
+  <option value="">-- select tournament --</option>
+</select>
+<div class="small" id="tournament-info">Loading tournaments...</div>
+<div style="margin:8px 0;">
+  <button id="load-participants-btn">Load Registered Participants</button>
+  <button id="clear-tournament-selection" class="secondary">Clear Tournament</button>
+</div>
+
+
       <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
         <button id="select-all-btn">Select All Filtered</button>
         <button id="clear-selection-btn" class="secondary">Clear Selection</button>
@@ -86,6 +97,81 @@
   </div>
 
   <script>
+
+    // existing top-level variables
+const tournamentSelect = document.getElementById('tournament-select');
+const tournamentInfoEl = document.getElementById('tournament-info');
+const loadParticipantsBtn = document.getElementById('load-participants-btn');
+const clearTournamentBtn = document.getElementById('clear-tournament-selection');
+
+let tournaments = []; // cached list of tournaments
+
+async function loadTournamentDropdown() {
+  try {
+    const res = await fetch('/admin/tournaments');
+    if (!res.ok) throw new Error('Failed to load tournaments');
+    tournaments = await res.json(); // array of { tournamentId, game: {name}, startTime, status }
+    tournamentSelect.innerHTML = '<option value="">-- select tournament --</option>';
+    tournaments.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.tournamentId;
+      const start = new Date(t.startTime).toLocaleString();
+      opt.textContent = `${t.tournamentId} — ${t.game?.name || ''} (${t.status}) @ ${start}`;
+      tournamentSelect.appendChild(opt);
+    });
+    tournamentInfoEl.textContent = 'Choose a tournament to auto-select its registered users.';
+  } catch (e) {
+    tournamentInfoEl.textContent = 'Failed to load tournaments.';
+    console.error(e);
+  }
+}
+
+function clearTournamentSelection() {
+  tournamentSelect.value = '';
+  selectedUnames.clear();
+  updateSelectionDisplay();
+  renderUsers(filteredUsers);
+  tournamentInfoEl.textContent = 'Tournament cleared.';
+}
+
+loadParticipantsBtn.addEventListener('click', async () => {
+  const tid = tournamentSelect.value;
+  if (!tid) {
+    tournamentInfoEl.textContent = 'Pick a tournament first.';
+    return;
+  }
+  tournamentInfoEl.textContent = 'Loading registered participants...';
+  try {
+    const res = await fetch(`/admin/tournament-registrations?tournamentId=${encodeURIComponent(tid)}`);
+    if (!res.ok) throw new Error('Failed to fetch participants');
+    const data = await res.json();
+    if (Array.isArray(data.usernames) && data.usernames.length) {
+      selectedUnames.clear();
+      data.usernames.forEach(u => selectedUnames.add(u));
+      updateSelectionDisplay();
+      renderUsers(filteredUsers);
+      tournamentInfoEl.textContent = `Loaded ${data.usernames.length} registered user(s) from tournament ${tid}.`;
+    } else {
+      tournamentInfoEl.textContent = 'No registered users found for this tournament.';
+    }
+  } catch (e) {
+    tournamentInfoEl.textContent = 'Error loading participants.';
+    console.error(e);
+  }
+});
+
+clearTournamentBtn.addEventListener('click', clearTournamentSelection);
+
+// initialize on page load
+window.addEventListener('DOMContentLoaded', () => {
+  loadUsers();
+  loadTournamentDropdown();
+});
+
+
+
+
+
     let allUsers = [];
     let filteredUsers = [];
     const selectedUnames = new Set(); // only unames

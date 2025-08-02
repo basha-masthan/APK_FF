@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin - Match Screenshots</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6 min-h-screen">
+
+  <h1 class="text-3xl font-bold text-center mb-6">📸 Match Screenshot Submissions (Admin)</h1>
+  <div id="screenshotsContainer" class="space-y-10"></div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="fixed inset-0 bg-black bg-opacity-90 hidden items-center justify-center z-50">
+    <img id="lightboxImage" src="" class="max-h-[90%] max-w-[90%] rounded-lg border-4 border-white shadow-xl cursor-pointer" />
+  </div>
+
+  <script>
+    async function loadScreenshots() {
+      const container = document.getElementById('screenshotsContainer');
+      container.innerHTML = '<p class="text-center text-gray-400">Loading screenshots...</p>';
+
+      try {
+        const res = await fetch('/admin/screenshots-by-match');
+        const data = await res.json();
+
+        if (!data.length) {
+          container.innerHTML = '<p class="text-center text-gray-400">No screenshots uploaded yet.</p>';
+          return;
+        }
+
+        container.innerHTML = '';
+
+        data.forEach(match => {
+          const section = document.createElement('div');
+          section.className = 'bg-gray-800 p-4 rounded-xl shadow-md';
+
+          let inner = `<h2 class="text-2xl font-bold text-blue-400 mb-4">🔥 ${match.title}</h2>`;
+
+          match.players.forEach(player => {
+            inner += `
+              <div class="mb-6 border-b border-gray-700 pb-4">
+                <p class="text-sm mb-1">🧑 <strong>${player.username}</strong> (${player.freefireId})</p>
+                
+                <img 
+                  src="${player.screenshotUrl}" 
+                  alt="Screenshot"
+                  class="rounded-lg max-w-xs border border-gray-700 cursor-pointer hover:scale-105 transition-transform click-preview mb-2"
+                  data-reg-id="${player._id}"
+                  data-img-url="${player.screenshotUrl}"
+                />
+
+                <div class="text-sm ml-1">
+                  🎯 <strong>Kills:</strong> <span class="player-kills">${player.kills || '-'}</span><br>
+                  🏁 <strong>Placement:</strong> <span class="player-placement">${player.placement || '-'}</span><br>
+                  <span class="player-status font-bold ${player.verified ? 'text-green-400' : 'text-red-400'}">
+                    ${player.verified ? '✅ Verified' : '❌ Invalid'}
+                  </span>
+                </div>
+
+                <button 
+                  class="run-ocr mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded"
+                  data-reg-id="${player._id}" 
+                  data-img-url="${player.screenshotUrl}">
+                  🔍 Run OCR
+                </button>
+              </div>
+            `;
+          });
+
+          section.innerHTML = inner;
+          container.appendChild(section);
+        });
+      } catch (err) {
+        console.error('❌ Failed to load screenshots:', err);
+        container.innerHTML = `<p class="text-red-500">Failed to load screenshot data.</p>`;
+      }
+    }
+
+    // OCR Button Logic
+    document.body.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('run-ocr')) {
+        const button = e.target;
+        const regId = button.getAttribute('data-reg-id');
+        const imgUrl = button.getAttribute('data-img-url');
+
+        button.innerText = '⏳ Running...';
+        button.disabled = true;
+
+        try {
+          const blob = await fetch(imgUrl).then(res => res.blob());
+          const formData = new FormData();
+          formData.append('screenshot', blob, 'screenshot.jpg');
+
+          const res = await fetch(`/ocr/ocr-validate/${regId}`, {
+            method: 'POST',
+            body: formData
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            const parent = button.parentElement;
+            parent.querySelector('.player-kills').textContent = data.kills || '-';
+            parent.querySelector('.player-placement').textContent = data.placement || '-';
+
+            const statusEl = parent.querySelector('.player-status');
+            statusEl.textContent = '✅ Verified';
+            statusEl.classList.remove('text-red-400');
+            statusEl.classList.add('text-green-400');
+          } else {
+            alert(data.message || 'OCR failed.');
+            const statusEl = button.parentElement.querySelector('.player-status');
+            statusEl.textContent = '❌ Invalid';
+            statusEl.classList.remove('text-green-400');
+            statusEl.classList.add('text-red-400');
+          }
+        } catch (err) {
+          console.error('OCR error:', err);
+          alert('Something went wrong.');
+        }
+
+        button.innerText = '🔍 Run OCR';
+        button.disabled = false;
+      }
+
+      // Image lightbox
+      if (e.target.classList.contains('click-preview')) {
+        document.getElementById('lightboxImage').src = e.target.src;
+        document.getElementById('lightbox').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+      } else if (e.target.id === 'lightbox' || e.target.id === 'lightboxImage') {
+        document.getElementById('lightbox').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+      }
+    });
+
+    // Load screenshots on page load
+    loadScreenshots();
+  </script>
+
+</body>
+</html>

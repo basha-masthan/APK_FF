@@ -142,7 +142,80 @@ router.get('/notifications/list', async (req, res) => {
 });
 
 
+router.get('/tournaments', async (req, res) => {
+  try {
+    // adjust filter as needed (e.g., only upcoming/ongoing)
+    const list = await Tournament.find({ status: { $in: ['Upcoming', 'Ongoing'] } })
+      .sort({ startTime: 1 })
+      .select('tournamentId game.name startTime status')
+      .lean();
+    res.json(list);
+  } catch (err) {
+    console.error('Failed to fetch tournaments:', err);
+    res.status(500).json({ error: 'Failed to load tournaments' });
+  }
+});
 
+router.get('/tournament-registrations', async (req, res) => {
+  try {
+    const { tournamentId } = req.query;
+    if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+
+    const tournament = await Tournament.findOne({ tournamentId }).select('_id').lean();
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+
+    const regs = await MatchRegistration.find({
+      tournamentId: tournament._id,
+      status: 'Registered'
+    }).select('username').lean();
+
+    const usernames = [...new Set(regs.map(r => r.username))];
+    res.json({ usernames });
+  } catch (err) {
+    console.error('Failed to fetch registrations:', err);
+    res.status(500).json({ error: 'Failed to load registrations' });
+  }
+});
+
+
+// const MatchRegistration = require('../models/MatchRegistration');
+// const Tournament = require('../models/Tournament');
+
+// 🧾 GET: All screenshots grouped by match
+router.get('/screenshots-by-match', async (req, res) => {
+  try {
+    const registrations = await MatchRegistration.find({ screenshotUrl: { $ne: '' } })
+      .populate('tournamentId')
+      .lean();
+
+    const grouped = {};
+
+    for (let reg of registrations) {
+      const tid = reg.tournamentId?._id || 'Unknown';
+      const title = reg.tournamentId?.tournamentId || 'Untitled Match';
+
+      if (!grouped[tid]) grouped[tid] = {
+        title,
+        players: []
+      };
+
+      grouped[tid].players.push({
+          _id: reg._id,                    // ✅ Required for OCR
+        username: reg.username,
+        freefireId: reg.freefireId,
+        screenshotUrl: reg.screenshotUrl,
+        kills: reg.kills || '-',
+        placement: reg.position || '-',
+        verified: reg.screenshotVerified || false
+      });
+    }
+
+    res.json(Object.values(grouped));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch screenshots' });
+  }
+});
 
 
 
