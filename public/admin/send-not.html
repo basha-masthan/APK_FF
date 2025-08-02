@@ -97,6 +97,31 @@
   </div>
 
   <script>
+fetch('/admin/tournaments')
+  .then(res => {
+    if (res.redirected) {
+      // If the server responded with a redirect (302)
+      window.location.href = res.url;
+      return;
+    }
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch tournaments");
+    }
+
+    return res.json();
+  })
+  .then(data => {
+    if (data) {
+      console.log("✅ Tournaments data:", data);
+      // render your admin page here...
+    }
+  })
+  .catch(err => {
+    console.error("❌ Error:", err);
+    alert("You are not authorized or an error occurred.");
+  });
+
 
     // existing top-level variables
 const tournamentSelect = document.getElementById('tournament-select');

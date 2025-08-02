@@ -1,8 +1,10 @@
-// middleware/adminOnly.js
-
-module.exports = (req, res, next) => {
-  if (!req.session.user || req.session.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Access denied. Admins only.' });
+function adminOnly(req, res, next) {
+  if (req.session && req.session.admin === true) {
+    return next(); // user is admin, continue
+  } else {
+    console.log("Fucking Error")
+return res.status(401).json({ error: 'Unauthorized' });
   }
-  next();
-};
+}
+
+module.exports = adminOnly;

@@ -53,6 +53,9 @@ app.get('/Games/ff', requireLogin,  (req, res) => {
   res.sendFile(path.join(__dirname, 'Games/ff.html'));
 });
 
+app.get('/admin/ok', (req, res) =>{
+    return res.redirect('./login.html');
+});
 
 app.post('/admin/login', (req, res) => {
   const { email, password } = req.body;

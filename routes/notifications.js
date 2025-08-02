@@ -3,7 +3,7 @@ const router = express.Router();
 const Notification = require('../models/Notification');
 const User = require('../models/User'); // <--- added
 const { addClient, removeClient, sendToUser } = require('../utils/sseManager');
-
+const AdminOnly = require('../middleware/adminOnly');
 
 
 
@@ -48,7 +48,7 @@ router.post('/notifications',  async (req, res) => {
 });
 
 // Admin: list all notifications (with user info)
-router.get('/notifications/list',  async (req, res) => {
+router.get('/notifications/list', AdminOnly,  async (req, res) => {
   try {
     const notes = await Notification.find()
       .sort({ createdAt: -1 })
