@@ -224,6 +224,11 @@ router.post('/withdraw', requireLogin, async (req, res) => {
       return res.status(400).json({ error: "Insufficient winning balance" });
     }
 
+
+    if ( parsedAmount < 20) {
+      return res.status(400).json({ error: "Withdraw Amount more then 20" });
+    }
+
     // Deduct balance first to prevent double withdrawal
     user.winningMoney -= parsedAmount;
     await user.save();
@@ -269,9 +274,11 @@ router.get('/all-users-wallet', async (req, res) => {
 });
 
 router.get('/transactions/total-deposit', async (req, res) => {
+  console.log("Total deposits:");
+  const txns = await Transaction.find({ type: 'Deposit', status: 'Success' });
   try {
-    const txns = await Transaction.find({ type: 'Deposit', status: 'Success' });
     const totalDeposited = txns.reduce((sum, txn) => sum + (txn.amount || 0), 0);
+    
     res.json({ success: true, totalDeposited });
   } catch (err) {
     console.error(err);
@@ -287,6 +294,8 @@ router.get('/tournaments/total-entry-fee', async (req, res) => {
   }, 0);
   res.json({ totalEntryFees });
 });
+
+
 
 router.get('/withdraw-requests/total', async (req, res) => {
   try {
