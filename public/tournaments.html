@@ -771,121 +771,203 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     <select id="supportTopic" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white">
       <option value="">-- Choose an option --</option>
       <option value="tournament">🎯 Tournament Registration</option>
-      <option value="deposit">💰 Money Deposit</option>
       <option value="squad">🛡️ Squad Match Group Selection</option>
+      <option value="live">📞 Live Chat</option>
+      <option value="deposit">💰 Money Deposit & Withdraw</option>
     </select>
   </div>
 
-  <!-- Step 2: Squad Group Selection -->
-  <div id="squadSelection" class="hidden space-y-3 border-t border-gray-700 pt-3">
-    <div>
-      <label for="tournamentIdInput" class="text-sm">Tournament ID:</label>
-      <input id="tournamentIdInput" type="text" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm" />
-    </div>
-
-    <div>
-      <label for="unameInput" class="text-sm">Username:</label>
-      <input id="unameInput" type="text" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm" />
-    </div>
-
-    <button onclick="verifySquadEligibility()" class="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-4 py-2 rounded w-full">
-      🔍 Verify & Choose Group
-    </button>
-
-    <div id="groupPoolSection" class="hidden">
-      <h3 class="text-sm font-semibold mt-2">Select Group:</h3>
-      <div class="flex space-x-2 mt-2">
-        <button onclick="selectGroup('A')" class="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm">Group A</button>
-        <button onclick="selectGroup('B')" class="flex-1 bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm">Group B</button>
-      </div>
-      <p id="groupStatus" class="text-xs text-gray-300 mt-2"></p>
-    </div>
+<!-- Step 2: Squad Group Selection -->
+<div id="squadSelection" class="hidden space-y-3 border-t border-gray-700 pt-3">
+  <div>
+    <label for="tournamentIdInput" class="text-sm">Tournament ID:</label>
+    <input id="tournamentIdInput" type="text" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm" />
   </div>
+
+  <div>
+    <label for="unameInput" class="text-sm">Username:</label>
+    <input id="unameInput" type="text" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm" />
+  </div>
+
+  <button onclick="verifySquadEligibility()" class="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-4 py-2 rounded w-full">
+    🔍 Verify & Choose Group
+  </button>
+
+  <div id="groupPoolSection" class="hidden">
+    <h3 class="text-sm font-semibold mt-2">Select Group:</h3>
+    <div class="flex space-x-2 mt-2">
+      <button onclick="selectGroup('A')" class="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm">Group A</button>
+      <button onclick="selectGroup('B')" class="flex-1 bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm">Group B</button>
+    </div>
+    <p id="groupStatus" class="text-xs text-gray-300 mt-2"></p>
+  </div>
+</div>
+
+<!-- Step 3: Info for Tournament Registration -->
+<div id="tournamentInfo" class="hidden border-t border-gray-700 pt-3 text-sm text-gray-300">
+  <p>
+    You can register for any tournament with a base entry fee and fulfill required conditions.<br><br>
+    After registering a tournament, you will see that tournament in "My Matches".<br>
+    In "My Matches" only, you can see Room ID & Password.<br>
+    You will get In-App notifications for further updates of registered tournaments.
+  </p>
+</div>
+
+<!-- Step 4: Info for Money Deposit & Withdraw -->
+<div id="depositInfo" class="hidden border-t border-gray-700 pt-3 text-sm text-gray-300">
+  <p>
+    💰 You can add money using any UPI app.<br>
+    ✅ Minimum Deposit: ₹10<br>
+    ✅ Minimum Withdraw: ₹20
+  </p>
+</div>
+
+<!-- Step 5: Live Chat Support -->
+<div id="liveChat" class="hidden border-t border-gray-700 pt-3 text-sm text-gray-300">
+  <p>
+    🛠️ We will rectify your problem within 14 hours.<br>
+    💬 Please leave your message below. Our support team will respond.<br><br>
+    If you want to chat directly with a live agent:<br>
+    👉 <a href="https://wa.link/tcbh7p" target="_blank" class="underline text-yellow-400">Click here to chat on WhatsApp</a>
+  </p>
+
+ <textarea id="liveChatMessage" placeholder="Type your message here..." class="w-full mt-3 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm resize-none" rows="3"></textarea>
+<button onclick="sendLiveChatMessage()" class="mt-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-4 py-2 rounded w-full">
+  📩 Send Message
+</button>
+
 </div>
 
 
 <script>
 
+
+function sendLiveChatMessage() {
+  const textarea = document.getElementById("liveChatMessage");
+  const message = textarea.value.trim();
+
+  if (!message) {
+    alert("Please type a message before sending.");
+    return;
+  }
+
+  // Encode message for URL
+  const encodedMessage = encodeURIComponent(message);
+
+  // Open WhatsApp chat with message
+  window.open(`https://wa.link/tcbh7p?text=${encodedMessage}`, '_blank');
+
+  // Clear the textarea
+  textarea.value = "";
+}
+
+document.addEventListener("click", function (event) {
+  const isClickInsideBox = chatBox.contains(event.target);
+  const isClickOnButton = chatBtn.contains(event.target);
+
+  if (!isClickInsideBox && !isClickOnButton) {
+    chatBox.classList.add("hidden");
+  }
+});
+
+
   const chatBtn = document.getElementById("chatToggleBtn");
   const chatBox = document.getElementById("chatBox");
+
+  const topicSelect = document.getElementById("supportTopic");
+  const squadSection = document.getElementById("squadSelection");
+  const tournamentInfo = document.getElementById("tournamentInfo");
+  const depositInfo = document.getElementById("depositInfo");
+  const liveChat = document.getElementById("liveChat");
 
   chatBtn.addEventListener("click", () => {
     chatBox.classList.toggle("hidden");
   });
 
-  // Show squad group selection logic
-  document.getElementById("supportTopic").addEventListener("change", function () {
-    const squadSection = document.getElementById("squadSelection");
-    if (this.value === "squad") {
-      squadSection.classList.remove("hidden");
-    } else {
-      squadSection.classList.add("hidden");
+  // Handle topic selection
+  topicSelect.addEventListener("change", function () {
+    // Hide all sections initially
+    squadSection.classList.add("hidden");
+    tournamentInfo.classList.add("hidden");
+    depositInfo.classList.add("hidden");
+    liveChat.classList.add("hidden");
+
+    // Show only relevant section based on selection
+    switch (this.value) {
+      case "squad":
+        squadSection.classList.remove("hidden");
+        break;
+      case "tournament":
+        tournamentInfo.classList.remove("hidden");
+        break;
+      case "deposit":
+        depositInfo.classList.remove("hidden");
+        // liveChat.classList.remove("hidden");
+        break;
+      case "live":
+        liveChat.classList.remove("hidden");
+        break;
     }
   });
 
+  async function verifySquadEligibility() {
+    const tournamentId = document.getElementById("tournamentIdInput").value.trim();
 
-document.getElementById("supportTopic").addEventListener("change", function () {
-  const squadSection = document.getElementById("squadSelection");
-  if (this.value === "squad") {
-    squadSection.classList.remove("hidden");
-  } else {
-    squadSection.classList.add("hidden");
-  }
-});
-
-async function verifySquadEligibility() {
-  const tournamentId = document.getElementById("tournamentIdInput").value.trim();
-
-  if (!tournamentId) {
-    alert("Please enter Tournament ID.");
-    return;
-  }
-
-  try {
-    const res = await fetch(`/support/squad-group/${tournamentId}`);
-    if (!res.ok) {
-      alert("❌ Tournament not found or not upcoming.");
+    if (!tournamentId) {
+      alert("Please enter Tournament ID.");
       return;
     }
 
-    const data = await res.json();
+    try {
+      const res = await fetch(`/support/squad-group/${tournamentId}`);
+      if (!res.ok) {
+        alert("❌ Tournament not found or not upcoming.");
+        return;
+      }
 
-    // Show group pool section
-    document.getElementById("groupPoolSection").classList.remove("hidden");
+      const data = await res.json();
 
-    document.getElementById("groupStatus").innerHTML = `
-      🧑‍🤝‍🧑 <strong>${data.A.length}</strong> players in Group A<br>
-      🧑‍🤝‍🧑 <strong>${data.B.length}</strong> players in Group B
-    `;
-  } catch (err) {
-    alert("❌ Error verifying group data.");
-    console.error(err);
-  }
-}
+      // Show group pool section
+      document.getElementById("groupPoolSection").classList.remove("hidden");
 
-async function selectGroup(group) {
-  const tournamentId = document.getElementById("tournamentIdInput").value.trim();
-  const uname = document.getElementById("unameInput").value.trim();
-  const freeFireId = prompt("Please enter your Free Fire ID:");
-
-  if (!tournamentId || !uname || !freeFireId) {
-    alert("All fields are required.");
-    return;
+      document.getElementById("groupStatus").innerHTML = `
+        🧑‍🤝‍🧑 <strong>${data.A.length}</strong> players in Group A<br>
+        🧑‍🤝‍🧑 <strong>${data.B.length}</strong> players in Group B
+      `;
+    } catch (err) {
+      alert("❌ Error verifying group data.");
+      console.error(err);
+    }
   }
 
-  const res = await fetch(`/support/squad-group`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tournamentId, uname, freeFireId, group }),
-  });
+  async function selectGroup(group) {
+    const tournamentId = document.getElementById("tournamentIdInput").value.trim();
+    const uname = document.getElementById("unameInput").value.trim();
+    const freeFireId = prompt("Please enter your Free Fire ID:");
 
-  const data = await res.json();
-  if (data.success) {
-    alert("✅ Group " + group + " selected successfully.");
-  } else {
-    alert("❌ " + (data.error || "Failed to assign group."));
+    if (!tournamentId || !uname || !freeFireId) {
+      alert("All fields are required.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/support/squad-group`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tournamentId, uname, freeFireId, group }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("✅ Group " + group + " selected successfully.");
+      } else {
+        alert("❌ " + (data.error || "Failed to assign group."));
+      }
+    } catch (err) {
+      alert("❌ Failed to send request.");
+      console.error(err);
+    }
   }
-}
 </script>
 
 
