@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Winzone Arena - Tournament Zone</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+    }
+    .glow-text {
+      text-shadow: 0 0 5px #ffcc00, 0 0 10px #ffcc00, 0 0 15px #ffcc00;
+    }
+    .fade-in {
+      animation: fadeIn 2s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="text-white min-h-screen flex flex-col items-center justify-start">
+
+  <!-- Header -->
+  <header class="w-full p-5 flex justify-between items-center bg-black bg-opacity-70 shadow-md">
+    <h1 class="text-2xl glow-text">🎮 Winzone Arena</h1>
+    <a href="/login.html" class="px-4 py-2 bg-yellow-400 text-black font-bold rounded hover:bg-yellow-300 transition">Login</a>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="w-full text-center py-16 px-4 fade-in">
+    <h2 class="text-5xl md:text-6xl font-bold mb-4 text-yellow-400">Weekly Free Entry Offer</h2>
+    <p class="text-xl md:text-2xl max-w-2xl mx-auto mb-8">Join daily & weekly tournaments and win up to ₹100 cash – no entry fees!</p>
+    <a href="tournaments.html" class="px-6 py-3 bg-yellow-500 text-black text-lg font-semibold rounded hover:bg-yellow-400 transition">Join Tournament</a>
+  </section>
+
+  <!-- Game Banner Section -->
+  <section class="w-full grid md:grid-cols-2 gap-8 px-6 py-12">
+    <div class="relative overflow-hidden rounded-xl shadow-lg hover:scale-105 transition">
+      <img src="img/ff2.webp" alt="Free Fire" class="w-full h-72 object-cover" />
+      <div class="absolute bottom-0 bg-black bg-opacity-60 w-full p-4 text-lg">🔥 Free Fire Battles</div>
+    </div>
+    <div class="relative overflow-hidden rounded-xl shadow-lg hover:scale-105 transition">
+      <img src="img/pubg.png" alt="PUBG" class="w-full h-72 object-cover" />
+      <div class="absolute bottom-0 bg-black bg-opacity-60 w-full p-4 text-lg">⚔️ PUBG Showdowns</div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="w-full text-center py-16 bg-gray-900 bg-opacity-50">
+    <h2 class="text-4xl font-bold mb-6 text-yellow-400">Why Choose Us?</h2>
+    <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto px-6">
+      <div class="bg-gray-800 p-6 rounded-xl shadow-md hover:bg-gray-700 transition">
+        <h3 class="text-2xl font-semibold mb-2">💰 Play & Earn</h3>
+        <p>Earn money for every match you play. More matches = more money!</p>
+      </div>
+      <div class="bg-gray-800 p-6 rounded-xl shadow-md hover:bg-gray-700 transition">
+        <h3 class="text-2xl font-semibold mb-2">📅 Daily & Weekly Tournaments</h3>
+        <p>Play every day or join weekly high-prize tournaments – your choice!</p>
+      </div>
+      <div class="bg-gray-800 p-6 rounded-xl shadow-md hover:bg-gray-700 transition">
+        <h3 class="text-2xl font-semibold mb-2">🆓 Free Entry Offers</h3>
+        <p>Every week we drop a free entry opportunity – join, play, and win ₹100!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="w-full py-16 px-6 text-center fade-in">
+    <h2 class="text-4xl font-bold mb-4 text-yellow-400">Unlimited Joy to Play – Money to Earn</h2>
+    <p class="text-xl max-w-2xl mx-auto mb-6">Step into the ultimate gaming platform where fun meets real cash rewards. Dominate the leaderboard!</p>
+    <a href="tournaments.html" class="px-8 py-3 bg-yellow-500 text-black font-bold text-lg rounded hover:bg-yellow-400 transition">Get Started Now</a>
+  </section>
+
+  <!-- Footer -->
+  <footer class="w-full bg-black text-center py-6 mt-10">
+    <p class="text-gray-400">© 2025 Winzone Arena. All rights reserved.</p>
+  </footer>
+
+
+  <script>
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+    // Optional: you could ping `/users/profile` to check session validity
+    fetch('/users/profile')
+      .then(res => {
+        if (res.ok) window.location.href = '/games.html';
+        else localStorage.removeItem('isLoggedIn'); // clear if session invalid
+      });
+  }
+  </script>
+
+</body>
+</html>
