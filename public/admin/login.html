@@ -132,42 +132,68 @@
   <div class="animated-background"></div>
 
   <div class="container">
-    <div class="card">
-      <h2>🛡️ Admin Login</h2>
-      <form method="POST" action="/admin/login" id="admin-login-form">
-        <input type="text" value="admin" name="email" placeholder="Admin Email" required />
-        <input type="password" value="admin" name="password" placeholder="Password" required />
-        <button type="submit">Login</button>
-        <p id="error"></p>
-      </form>
-    </div>
+   <div class="card" id="login-step1">
+  <h2>🛡️ Admin Login</h2>
+  <form id="admin-login-form">
+    <input type="text" name="email" placeholder="Admin Email" required />
+    <input type="password" name="password" placeholder="Password" required />
+    <button type="submit">Login</button>
+    <p id="error"></p>
+  </form>
+</div>
+
+<div class="card" id="login-step2" style="display:none;">
+  <h2>Enter OTP</h2>
+  <form id="otp-form">
+    <input type="text" name="otp" placeholder="6-digit OTP" required />
+    <button type="submit">Verify OTP</button>
+    <p id="otp-error"></p>
+  </form>
+</div>
   </div>
 
-  <script>
-    document.getElementById('admin-login-form').addEventListener('submit', async function (e) {
+
+<script>
+document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const form = e.target;
-  const email = form.email.value;
-  const password = form.password.value;
-
-  try {
-    const res = await fetch("/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    });
-
-    const data = await res.json();
-    if (res.ok && data.success) {
-      window.location.href = data.redirect || "/admin/dashboard.html";
-    } else {
-      document.getElementById("error").textContent = data.error || "Invalid credentials";
-    }
-  } catch (err) {
-    document.getElementById("error").textContent = "Network error or server not responding.";
+  const formData = {
+    email: e.target.email.value,
+    password: e.target.password.value
+  };
+  const res = await fetch('/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(formData)
+  });
+  const data = await res.json();
+  if (data.step === "otp") {
+    document.getElementById('login-step1').style.display = "none";
+    document.getElementById('login-step2').style.display = "block";
+  } else {
+    document.getElementById('error').textContent = "Invalid credentials";
   }
 });
 
-  </script>
+document.getElementById('otp-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = {
+    otp: e.target.otp.value
+  };
+  const res = await fetch('/admin/verify-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(formData)
+  });
+  const data = await res.json();
+  if (data.success) {
+    window.location.href = data.redirect;
+  } else {
+    document.getElementById('otp-error').textContent = "Invalid or expired OTP";
+  }
+});
+
+</script>
+
+
 </body>
 </html>

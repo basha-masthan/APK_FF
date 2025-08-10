@@ -8,6 +8,12 @@ const morgan = require('morgan');
 const requireLogin = require('./middleware/requireLogin');
 const MongoStore = require('connect-mongo');
 const resolveUserId = require('./middleware/resolveUserId');
+const webpush = require('web-push');
+const bodyParser = require('body-parser');
+const admin = require("./firebaseAdmin");
+
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 dotenv.config();
 const app = express();
@@ -25,6 +31,16 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
   }
 }));
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // true for port 465, false for 587
+  auth: {
+    user: process.env.SMTP_EMAIL,
+    pass: process.env.SMTP_PASS
+  }
+});
 
 
 // ✅ Serve static public files (like login form)
@@ -57,15 +73,105 @@ app.get('/admin/ok', (req, res) =>{
     return res.redirect('./login.html');
 });
 
+
+
 app.post('/admin/login', (req, res) => {
   const { email, password } = req.body;
+
   if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-    req.session.admin = true;
-    res.status(200).json({ success: true, redirect: "/admin/dashboard.html" });
+    // Generate a 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    
+    // Save OTP in session (valid for 5 min)
+    req.session.otp = otp;
+    req.session.otpExpiry = Date.now() + 5 * 60 * 1000;
+
+    // Send email
+    transporter.sendMail({
+      from: `"Admin Security" <${process.env.SMTP_EMAIL}>`,
+      to: "winzonearenaofficial@gmail.com",
+      subject: "Your Admin Login OTP",
+      text: `Your OTP for admin login is: ${otp}. This OTP will expire in 5 minutes.`
+    }, (err, info) => {
+      if (err) {
+        console.error("Error sending OTP:", err);
+        return res.status(500).send("Failed to send OTP");
+      }
+      res.status(200).json({ success: true, step: "otp" });
+    });
+
   } else {
     res.send('<p>❌ Invalid credentials. <a href="/admin.html">Try again</a></p>');
   }
 });
+
+// Step 2: Verify OTP
+app.post('/admin/verify-otp', (req, res) => {
+  const { otp } = req.body;
+
+  if (!req.session.otp || Date.now() > req.session.otpExpiry) {
+  delete req.session.otp;
+  delete req.session.otpExpiry;
+  return res.status(400).json({ success: false, message: "OTP expired. Please login again." });
+}
+
+  if (otp === req.session.otp) {
+    req.session.admin = true;
+    delete req.session.otp;
+    delete req.session.otpExpiry;
+    res.status(200).json({ success: true, redirect: "/admin/dashboard.html" });
+  } else {
+    res.status(400).send("Invalid OTP. Please try again.");
+  }
+});
+
+
+
+
+let pending = {}; // Store verification state
+
+// Truecaller callback after verification
+app.post('/truecaller-callback', async (req, res) => {
+  const { requestId, accessToken, endpoint } = req.body;
+
+  try {
+    const profileResp = await fetch(endpoint, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    const profile = await profileResp.json();
+
+    // Save user as verified
+    pending[requestId] = { verified: true, profile };
+
+    res.json({ status: 'ok' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Profile fetch failed' });
+  }
+});
+
+// Polling status
+app.get('/verify-status/:nonce', (req, res) => {
+  const status = pending[req.params.nonce];
+  if (status) {
+    res.json(status);
+  } else {
+    res.status(404).json({ verified: false });
+  }
+});
+
+// Fallback SMS sending
+app.post('/send-fallback-sms/:nonce', (req, res) => {
+  const nonce = req.params.nonce;
+
+  // TODO: integrate SMS provider like Twilio or MSG91 here
+  console.log(`Sending SMS to user for nonce ${nonce}`);
+
+  pending[nonce] = { verified: false, smsSent: true };
+  res.json({ status: 'sms_sent' });
+});
+
+
 
 
 const userRoutes = require('./routes/userRoutes');
@@ -90,6 +196,7 @@ app.post('/users/login', async (req, res) => {
     role: user.role
   };
 
+  // basha
   res.json({ success: true }); // ✅ JSON response
 });
 
@@ -141,6 +248,44 @@ app.use(attachNotificationCount);
 
 const ocrRoutes = require('./routes/ocr'); 
 app.use('/ocr', ocrRoutes);
+
+
+app.post('/save-subscription', async (req, res) => {
+  const uname = req.session?.user?.uname;
+  if (!uname) return res.status(401).json({ error: 'Unauthorized' });
+
+  const subscription = req.body;
+  await db.collection('pushSubs').updateOne(
+    { uname },
+    { $set: { subscription } },
+    { upsert: true }
+  );
+  res.json({ ok: true });
+});
+
+const publicVapidKey = 'BBbzsqDnOXvw8_uKX-yc7N3EkLPqvqoNkrW2y8rFKsbcGT5iF0iL3pJwLfXwdLKIMdwGUhz1Ath-U_ZDuppSm5w';
+const privateVapidKey = 'muGzuAxIAg3V12eOIJweE0_bwIkN8-x5-UcSYiJQaE0';
+webpush.setVapidDetails(
+  'mailto:test@example.com',
+  publicVapidKey,
+  privateVapidKey
+);
+
+app.post('/save-subscription', async (req, res) => {
+  const { uname, subscription } = req.body;
+  if (!uname || !subscription) return res.status(400).send('Missing data');
+
+  await PushSub.updateOne(
+    { uname, 'subscription.endpoint': subscription.endpoint },
+    { uname, subscription },
+    { upsert: true }
+  );
+
+  res.sendStatus(201);
+});
+
+const PushSub = require('./models/PushSub'); // import model if in separate file
+
 
 
 
