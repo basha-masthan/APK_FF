@@ -10,7 +10,7 @@ const MongoStore = require('connect-mongo');
 const resolveUserId = require('./middleware/resolveUserId');
 const webpush = require('web-push');
 const bodyParser = require('body-parser');
-const admin = require("./firebaseAdmin");
+
 
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
@@ -284,7 +284,7 @@ app.post('/save-subscription', async (req, res) => {
   res.sendStatus(201);
 });
 
-const PushSub = require('./models/PushSub'); // import model if in separate file
+
 
 
 
