@@ -74,67 +74,56 @@ app.get('/admin/ok', (req, res) =>{
 });
 
 
+
 app.post('/admin/login', (req, res) => {
   const { email, password } = req.body;
+
   if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-    req.session.admin = true;
-    res.status(200).json({ success: true, redirect: "/admin/dashboard.html" });
+    // Generate a 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    
+    // Save OTP in session (valid for 5 min)
+    req.session.otp = otp;
+    req.session.otpExpiry = Date.now() + 5 * 60 * 1000;
+
+    // Send email
+    transporter.sendMail({
+      from: `"Admin Security" <${process.env.SMTP_EMAIL}>`,
+      to: "winzonearenaofficial@gmail.com",
+      subject: "Your Admin Login OTP",
+      text: `Your OTP for admin login is: ${otp}. This OTP will expire in 5 minutes.`
+    }, (err, info) => {
+      if (err) {
+        console.error("Error sending OTP:", err);
+        return res.status(500).send("Failed to send OTP");
+      }
+      res.status(200).json({ success: true, step: "otp" });
+    });
+
   } else {
     res.send('<p>❌ Invalid credentials. <a href="/admin.html">Try again</a></p>');
   }
 });
 
+// Step 2: Verify OTP
+app.post('/admin/verify-otp', (req, res) => {
+  const { otp } = req.body;
 
+  if (!req.session.otp || Date.now() > req.session.otpExpiry) {
+  delete req.session.otp;
+  delete req.session.otpExpiry;
+  return res.status(400).json({ success: false, message: "OTP expired. Please login again." });
+}
 
-// app.post('/admin/login', (req, res) => {
-//   const { email, password } = req.body;
-
-//   if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-//     // Generate a 6-digit OTP
-//     const otp = crypto.randomInt(100000, 999999).toString();
-    
-//     // Save OTP in session (valid for 5 min)
-//     req.session.otp = otp;
-//     req.session.otpExpiry = Date.now() + 5 * 60 * 1000;
-
-//     // Send email
-//     transporter.sendMail({
-//       from: `"Admin Security" <${process.env.SMTP_EMAIL}>`,
-//       to: "winzonearenaofficial@gmail.com",
-//       subject: "Your Admin Login OTP",
-//       text: `Your OTP for admin login is: ${otp}. This OTP will expire in 5 minutes.`
-//     }, (err, info) => {
-//       if (err) {
-//         console.error("Error sending OTP:", err);
-//         return res.status(500).send("Failed to send OTP");
-//       }
-//       res.status(200).json({ success: true, step: "otp" });
-//     });
-
-//   } else {
-//     res.send('<p>❌ Invalid credentials. <a href="/admin.html">Try again</a></p>');
-//   }
-// });
-
-// // Step 2: Verify OTP
-// app.post('/admin/verify-otp', (req, res) => {
-//   const { otp } = req.body;
-
-//   if (!req.session.otp || Date.now() > req.session.otpExpiry) {
-//   delete req.session.otp;
-//   delete req.session.otpExpiry;
-//   return res.status(400).json({ success: false, message: "OTP expired. Please login again." });
-// }
-
-//   if (otp === req.session.otp) {
-//     req.session.admin = true;
-//     delete req.session.otp;
-//     delete req.session.otpExpiry;
-//     res.status(200).json({ success: true, redirect: "/admin/dashboard.html" });
-//   } else {
-//     res.status(400).send("Invalid OTP. Please try again.");
-//   }
-// });
+  if (otp === req.session.otp) {
+    req.session.admin = true;
+    delete req.session.otp;
+    delete req.session.otpExpiry;
+    res.status(200).json({ success: true, redirect: "/admin/dashboard.html" });
+  } else {
+    res.status(400).send("Invalid OTP. Please try again.");
+  }
+});
 
 
 
