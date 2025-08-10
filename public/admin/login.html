@@ -143,43 +143,40 @@
     </div>
   </div>
 
-<script>
+  <script>
 document.getElementById('admin-login-form').addEventListener('submit', async function(e) {
   e.preventDefault();
 
   const form = e.target;
   const errorEl = document.getElementById('error');
 
-  // Clear previous error
-  errorEl.textContent = "";
+  errorEl.textContent = ""; // Clear error before new attempt
 
-  // Collect form data
   const email = form.email.value.trim();
   const password = form.password.value.trim();
 
   try {
     const res = await fetch('/admin/login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
 
-    // Check if response is JSON (success) or HTML (error)
     const contentType = res.headers.get("content-type");
 
     if (contentType && contentType.includes("application/json")) {
       const data = await res.json();
       if (data.success) {
+        // Redirect to dashboard
         window.location.href = data.redirect;
+        return; // stop execution so error text won't appear
       } else {
         errorEl.textContent = "Invalid credentials.";
       }
     } else {
-      // If it's HTML, extract error message
+      // If HTML is returned, show it
       const text = await res.text();
-      errorEl.innerHTML = text; // this will render the HTML returned
+      errorEl.innerHTML = text;
     }
   } catch (err) {
     errorEl.textContent = "⚠️ Server error. Please try again.";
