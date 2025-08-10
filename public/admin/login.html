@@ -132,67 +132,61 @@
   <div class="animated-background"></div>
 
   <div class="container">
-   <div class="card" id="login-step1">
-  <h2>🛡️ Admin Login</h2>
-  <form id="admin-login-form">
-    <input type="text" name="email" placeholder="Admin Email" required />
-    <input type="password" name="password" placeholder="Password" required />
-    <button type="submit">Login</button>
-    <p id="error"></p>
-  </form>
-</div>
-
-<div class="card" id="login-step2" style="display:none;">
-  <h2>Enter OTP</h2>
-  <form id="otp-form">
-    <input type="text" name="otp" placeholder="6-digit OTP" required />
-    <button type="submit">Verify OTP</button>
-    <p id="otp-error"></p>
-  </form>
-</div>
+   <div class="card">
+      <h2>🛡️ Admin Login</h2>
+      <form method="POST" action="/admin/login" id="admin-login-form">
+        <input type="text"  name="email" placeholder="Admin Email" required />
+        <input type="password"  name="password" placeholder="Password" required />
+        <button type="submit">Login</button>
+        <p id="error"></p>
+      </form>
+    </div>
   </div>
 
-
 <script>
-document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+document.getElementById('admin-login-form').addEventListener('submit', async function(e) {
   e.preventDefault();
-  const formData = {
-    email: e.target.email.value,
-    password: e.target.password.value
-  };
-  const res = await fetch('/admin/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(formData)
-  });
-  const data = await res.json();
-  if (data.step === "otp") {
-    document.getElementById('login-step1').style.display = "none";
-    document.getElementById('login-step2').style.display = "block";
-  } else {
-    document.getElementById('error').textContent = "Invalid credentials";
+
+  const form = e.target;
+  const errorEl = document.getElementById('error');
+
+  // Clear previous error
+  errorEl.textContent = "";
+
+  // Collect form data
+  const email = form.email.value.trim();
+  const password = form.password.value.trim();
+
+  try {
+    const res = await fetch('/admin/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    // Check if response is JSON (success) or HTML (error)
+    const contentType = res.headers.get("content-type");
+
+    if (contentType && contentType.includes("application/json")) {
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = data.redirect;
+      } else {
+        errorEl.textContent = "Invalid credentials.";
+      }
+    } else {
+      // If it's HTML, extract error message
+      const text = await res.text();
+      errorEl.innerHTML = text; // this will render the HTML returned
+    }
+  } catch (err) {
+    errorEl.textContent = "⚠️ Server error. Please try again.";
   }
 });
-
-document.getElementById('otp-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const formData = {
-    otp: e.target.otp.value
-  };
-  const res = await fetch('/admin/verify-otp', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(formData)
-  });
-  const data = await res.json();
-  if (data.success) {
-    window.location.href = data.redirect;
-  } else {
-    document.getElementById('otp-error').textContent = "Invalid or expired OTP";
-  }
-});
-
 </script>
+
 
 
 </body>
